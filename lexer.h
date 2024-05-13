@@ -9,12 +9,13 @@ typedef struct {
   size_t cursor;
   size_t bol;
   size_t line;
-  sv_t *input;
+  const sv_t *input;
 } lexer_t;
 
 typedef enum {
   TOKEN_KIND_END,
   TOKEN_KIND_WS,
+  TOKEN_KIND_NEWLINE,
   TOKEN_KIND_STAR,
   TOKEN_KIND_EQL,
   TOKEN_KIND_OPAREN,
@@ -37,5 +38,6 @@ typedef struct {
 
 void print_token(const token_t tok);
 token_t get_next_token(lexer_t lexer[const static 1]);
+token_t peek_next_token(const lexer_t lexer[const static 1]);
 
 #endif // LEXER_H_

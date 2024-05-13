@@ -20,9 +20,7 @@ int main(void)
 
   lexer_t lexer = {0};
   sv_t input = sv_from_buf(fc.contents, fc.size);
-
   lexer.input = &input;
-
 
   token_t tok;
   // lex loop (move into parse loop in parser)

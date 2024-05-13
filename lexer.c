@@ -6,26 +6,28 @@
 #define ZDX_STRING_VIEW_IMPLEMENTATION
 #include "./zdx_string_view.h"
 
+static const char *token_to_str[] = {
+  "TOKEN_KIND_END",
+  "TOKEN_KIND_WS",
+  "TOKEN_KIND_NEWLINE",
+  "TOKEN_KIND_STAR",
+  "TOKEN_KIND_EQL",
+  "TOKEN_KIND_OPAREN",
+  "TOKEN_KIND_CPAREN",
+  "TOKEN_KIND_COMMA",
+  "TOKEN_KIND_SEMICOLON",
+  "TOKEN_KIND_SYMBOL",
+  "TOKEN_KIND_STRING",
+  "TOKEN_KIND_INT",
+  "TOKEN_KIND_FLOAT",
+  "TOKEN_KIND_UNKNOWN",
+};
+
+_Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
+               "Some token kinds are missing their corresponding strings in token to string map");
+
 void print_token(const token_t tok)
 {
-  static const char *token_to_str[] = {
-    "TOKEN_KIND_END",
-    "TOKEN_KIND_WS",
-    "TOKEN_KIND_STAR",
-    "TOKEN_KIND_EQL",
-    "TOKEN_KIND_OPAREN",
-    "TOKEN_KIND_CPAREN",
-    "TOKEN_KIND_COMMA",
-    "TOKEN_KIND_SEMICOLON",
-    "TOKEN_KIND_SYMBOL",
-    "TOKEN_KIND_STRING",
-    "TOKEN_KIND_INT",
-    "TOKEN_KIND_FLOAT",
-    "TOKEN_KIND_UNKNOWN",
-  };
-
-  _Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
-                 "Some token kinds are missing their corresponding strings in token to string map");
 
   if (tok.kind == TOKEN_KIND_END) {
     printf("kind = %s    \tlength = %zu \tval = %s\n",
@@ -37,6 +39,15 @@ void print_token(const token_t tok)
     printf("kind = %s    \tlength = %zu \tval = '"SV_FMT"'\n",
            token_to_str[tok.kind], tok.value.length, sv_fmt_args(tok.value));
   }
+}
+
+
+token_t peek_next_token(const lexer_t lexer[const static 1])
+{
+  lexer_t temp_lexer = *lexer;
+  token_t next_tok = get_next_token(&temp_lexer);
+
+  return next_tok;
 }
 
 token_t get_next_token(lexer_t lexer[const static 1])
@@ -53,6 +64,7 @@ token_t get_next_token(lexer_t lexer[const static 1])
     tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
 
     if (sv_eq_cstr(tok.value, "\n")) {
+      tok.kind = TOKEN_KIND_NEWLINE;
       lexer->bol = lexer->cursor;
       lexer->line++;
     }
