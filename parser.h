@@ -3,6 +3,31 @@
 
 #include <stddef.h>
 
+#include "./lexer.h"
+#include "./zdx_simple_arena.h"
+
+
+typedef enum {
+  AST_NODE_KIND_EMPTY,
+  AST_NODE_KIND_UNKNOWN,
+  AST_NODE_KIND_PROGRAM,
+  AST_NODE_KIND_DECLARATION,
+  AST_NODE_KIND_ASSIGNMENT,
+  AST_NODE_KIND_CALL,
+  AST_NODE_KIND_COUNT
+} ast_node_kind_t;
+
+typedef struct ast_node_t {
+  ast_node_kind_t kind;
+  size_t length;
+  size_t capacity;
+  struct ast_node_t *items;
+  const char *err;
+} ast_node_t;
+
+void print_ast(const ast_node_t node);
+ast_node_t parse(arena_t *const arena, const char source[const static 1], const size_t source_length);
+
 /**
  * Grammar:
  *
@@ -20,22 +45,7 @@
  *
  */
 
-typedef enum {
-  AST_NODE_KIND_EMPTY,
-  AST_NODE_KIND_UNKNOWN,
-  AST_NODE_KIND_PROGRAM,
-  AST_NODE_KIND_COUNT
-} ast_node_kind_t;
-
-typedef struct ast_node_t {
-  ast_node_kind_t kind;
-  size_t length;
-  size_t capacity;
-  struct ast_node_t *items;
-  const char *err;
-} ast_node_t;
-
-void print_ast(const ast_node_t node);
-ast_node_t parse(const char source[const static 1], const size_t source_length);
-
+ast_node_t parse_program(arena_t *const arena, lexer_t lexer[const static 1]);
+ast_node_t parse_assignment_statement(arena_t *const arena, const lexer_t lexer[const static 1]);
+ast_node_t parse_call_statement(arena_t *const arena, const lexer_t lexer[const static 1]);
 #endif // PARSER_H_
