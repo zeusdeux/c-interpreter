@@ -4,9 +4,9 @@
 #define ZDX_FILE_IMPLEMENTATION
 #include "./zdx_file.h"
 
-#include "./lexer.h"
+#include "./parser.h"
 
-// gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c && ./interpreter
+// gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c parser.c && ./interpreter
 int main(void)
 {
   fl_content_t fc = fl_read_file("./tests/mocks/main.c", "r");
@@ -18,19 +18,12 @@ int main(void)
     return 1;
   }
 
-  lexer_t lexer = {0};
-  sv_t input = sv_from_buf(fc.contents, fc.size);
-  lexer.input = &input;
-
-  token_t tok;
-  // lex loop (move into parse loop in parser)
-  do {
-    tok = get_next_token(&lexer);
-    print_token(tok);
-
-  } while (tok.kind != TOKEN_KIND_END);
+  // parse
+  ast_node_t program = parse(fc.contents, fc.size);
+  (void) program;
 
   // walk ast and interpret
+  // TODO: interpret(program);
 
   fc_deinit(&fc);
   return 0;

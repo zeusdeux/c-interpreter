@@ -1,7 +1,7 @@
 #ifndef PARSER_H_
 #define PARSER_H_
 
-#include "./lexer.h"
+#include <stddef.h>
 
 /**
  * Grammar:
@@ -27,12 +27,15 @@ typedef enum {
   AST_NODE_KIND_COUNT
 } ast_node_kind_t;
 
-typedef struct {
+typedef struct ast_node_t {
   ast_node_kind_t kind;
-  ast_node_t *children;
+  size_t length;
+  size_t capacity;
+  struct ast_node_t *items;
   const char *err;
 } ast_node_t;
 
-ast_node_t parse(const char source[const static 1]);
+void print_ast(const ast_node_t node);
+ast_node_t parse(const char source[const static 1], const size_t source_length);
 
 #endif // PARSER_H_
