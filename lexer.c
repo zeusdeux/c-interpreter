@@ -41,6 +41,14 @@ void print_token(const token_t tok)
   }
 }
 
+void reset_lexer(lexer_t dst[const static 1], const lexer_t src)
+{
+  dst->cursor = src.cursor;
+  dst->bol = src.bol;
+  dst->line = src.line;
+  dst->input = src.input;
+}
+
 
 token_t peek_next_token(const lexer_t lexer[const static 1])
 {

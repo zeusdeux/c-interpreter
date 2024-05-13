@@ -39,5 +39,6 @@ typedef struct {
 void print_token(const token_t tok);
 token_t get_next_token(lexer_t lexer[const static 1]);
 token_t peek_next_token(const lexer_t lexer[const static 1]);
+void reset_lexer(lexer_t dst[const static 1], const lexer_t src);
 
 #endif // LEXER_H_
