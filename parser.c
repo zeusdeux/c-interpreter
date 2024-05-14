@@ -6,21 +6,21 @@
 void print_ast(const ast_node_t node)
 {
   (void) node;
-  assertm(false, "TODO: Implementation");
+  assertm(false, "TODO: Implement");
 }
 
 ast_node_t parse_assignment_statement(arena_t *const arena, const lexer_t lexer[const static 1])
 {
   (void) arena;
   (void) lexer;
-  assertm(false, "TODO: Impement");
+  assertm(false, "TODO: Implement");
   return (ast_node_t){0};
 }
 ast_node_t parse_call_statement(arena_t *const arena, const lexer_t lexer[const static 1])
 {
   (void) arena;
   (void) lexer;
-  assertm(false, "TODO: Impement");
+  assertm(false, "TODO: Implement");
   return (ast_node_t){0};
 }
 
