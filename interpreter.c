@@ -18,9 +18,10 @@
 // gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c parser.c && ./interpreter
 int main(void)
 {
+  // this will allocate 1 MB + extra bytes to align to page size boundary (4096 on Intel, 16384 on M1)
   arena_t arena = arena_create(1 MB);
   assertm(!arena.err, "Expected: arena creation to succeed, Received: %s", arena.err);
-  log(L_INFO, "Arena size = %zu kilobytes, used = %zu bytes", arena.size, arena.offset ? arena.offset - 1: 0);
+  log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena.offset ? arena.offset - 1: 0);
 
   fl_content_t fc = fl_read_file(&arena, "./tests/mocks/main.c", "r");
 
@@ -33,12 +34,12 @@ int main(void)
 
   // parse
   ast_node_t program = parse(&arena, fc.contents, fc.size);
-  (void) program;
+  print_ast(program);
 
   // walk ast and interpret
   // TODO: interpret(program);
 
-  log(L_INFO, "Arena size = %zu kilobytes, used = %zu bytes", arena.size, arena.offset ? arena.offset - 1: 0);
+  log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena.offset ? arena.offset - 1: 0);
 
   // don't really need to deinit as the arena that'd holding the file bytes is freed next anyway
   fc_deinit(&fc);

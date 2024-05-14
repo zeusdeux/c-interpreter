@@ -62,8 +62,9 @@ token_t get_next_token(lexer_t lexer[const static 1])
 {
   token_t tok = {0};
 
-  if (lexer->input->length == 0 || lexer->cursor >= lexer->input->length) {
+  if (lexer->input->length <= 0 || lexer->cursor >= lexer->input->length) {
     tok.kind = TOKEN_KIND_END;
+
     return tok;
   }
 
@@ -122,6 +123,7 @@ token_t get_next_token(lexer_t lexer[const static 1])
     return tok;
   }
 
+  // symbol
   if (isalpha(lexer->input->buf[lexer->cursor]) || lexer->input->buf[lexer->cursor] == '_') {
     char c;
 
@@ -149,6 +151,7 @@ token_t get_next_token(lexer_t lexer[const static 1])
       if (lexer->cursor >= lexer->input->length || lexer->input->buf[lexer->cursor] == '\n') {
         tok.kind = TOKEN_KIND_UNKNOWN;
         tok.err = "Expected a closing quote (\")";
+
         return tok;
       }
 
