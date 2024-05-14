@@ -31,6 +31,7 @@ ast_node_t parse_program(arena_t *const arena, lexer_t lexer[const static 1])
 {
   ast_node_t program_node = { .kind = AST_NODE_KIND_PROGRAM };
 
+  // save lexer state before calls to sub parsers
   lexer_t before = *lexer;
   ast_node_t node = parse_assignment_statement(arena, lexer);
 
@@ -43,9 +44,13 @@ ast_node_t parse_program(arena_t *const arena, lexer_t lexer[const static 1])
   reset_lexer(lexer, before);
   node = parse_call_statement(arena, lexer);
 
+  // we should probably not return here and below and instead
+  // push a "statement" node into items of a program node
   if (node.kind != AST_NODE_KIND_EMPTY) {
     return node;
   }
+
+  reset_lexer(lexer, before);
 
   node.kind = AST_NODE_KIND_UNKNOWN;
   node.err = "Unrecognized token";
