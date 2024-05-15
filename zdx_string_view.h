@@ -47,12 +47,12 @@ typedef struct string_view {
   size_t length;
 } sv_t;
 
-
 #define SV_FMT "%.*s"
 #define sv_fmt_args(sv) (int)(sv).length, (sv).buf
 
 sv_t sv_from_buf(const char* buf, const size_t len);
 sv_t sv_from_cstr(const char* str);
+bool sv_begins_with_word_cstr(sv_t sv, const char *str);
 bool sv_eq_cstr(sv_t sv, const char *str);
 bool sv_eq_sv(const sv_t sv1, const sv_t sv2);
 sv_t sv_trim_left(sv_t sv);
@@ -75,6 +75,7 @@ sv_t sv_split_until_idx(sv_t *const sv, const size_t until); /* excluding idx un
 #ifndef SV_ASSERT
 #define SV_ASSERT assertm
 #endif // SV_ASSERT
+
 
 #define sv_dbg(label, sv) dbg("%s buf \""SV_FMT"\" \t| length %zu", (label), sv_fmt_args(sv), (sv).length)
 #define sv_assert_validity(sv) {                                                                           \
@@ -110,9 +111,26 @@ sv_t sv_from_cstr(const char* str)
   return sv;
 }
 
-bool sv_eq_cstr(sv_t sv, const char *str)
+bool sv_begins_with_word_cstr(sv_t sv, const char *str)
 {
   sv_dbg("<<", sv);
+  sv_assert_validity(sv);
+
+  const size_t input_str_len = strlen(str);
+
+  if (input_str_len > sv.length) {
+    return false;
+  } else if (input_str_len == sv.length) {
+    return memcmp(sv.buf, str, input_str_len) == 0;
+  } else {
+    return memcmp(sv.buf, str, input_str_len) == 0 && isspace(sv.buf[input_str_len]);
+  }
+
+  return false;
+}
+
+bool sv_eq_cstr(sv_t sv, const char *str)
+{
   sv_assert_validity(sv);
 
   const size_t input_str_len = strlen(str);

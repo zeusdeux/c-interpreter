@@ -1,10 +1,41 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <ctype.h>
 
 #include "./lexer.h"
 
 #define ZDX_STRING_VIEW_IMPLEMENTATION
 #include "./zdx_string_view.h"
+
+// section 6.7.1 of c17 standard also lists "typedef" as a storage class
+// but we tokenize that separately into TOKEN_KIND_TYPEDEF
+static const char *storage_classes[] = {
+  "extern",
+  "static",
+  "_Thread_local",
+  "auto",
+  "register"
+};
+static const uint8_t storage_class_lengths[] = {
+  6, // extern
+  6, // static
+  13, // _Thread_local
+  4, // auto
+  8, // register
+};
+
+static const char *type_qualifiers[] = {
+  "const",
+  "restrict",
+  "volatile",
+  "_Atomic"
+};
+static const uint8_t type_qualifiers_lengths[] = {
+  5, // const
+  8, // restrict
+  8, // volatile
+  7, // _Atomic
+};
 
 static const char *token_to_str[] = {
   "TOKEN_KIND_END",
@@ -16,6 +47,9 @@ static const char *token_to_str[] = {
   "TOKEN_KIND_CPAREN",
   "TOKEN_KIND_COMMA",
   "TOKEN_KIND_SEMICOLON",
+  "TOKEN_KIND_TYPEDEF",
+  "TOKEN_KIND_STORAGE", // static, extern, auto, register and _Thread_local
+  "TOKEN_KIND_QUALIFIER", // const, restrict, volatile, _Atomic
   "TOKEN_KIND_SYMBOL",
   "TOKEN_KIND_STRING",
   "TOKEN_KIND_INT",
@@ -28,7 +62,6 @@ _Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
 
 void print_token(const token_t tok)
 {
-
   if (tok.kind == TOKEN_KIND_END) {
     printf("kind = %s    \tlength = %zu \tval = %s\n",
            token_to_str[tok.kind], tok.value.length, tok.value.buf);
@@ -122,6 +155,53 @@ token_t get_next_token(lexer_t lexer[const static 1])
 
     return tok;
   }
+
+  {
+    sv_t temp = {
+      .buf = &lexer->input->buf[lexer->cursor],
+      .length = lexer->input->length - lexer->cursor
+    };
+
+    // typedef
+    if (sv_begins_with_word_cstr(temp, "typedef")) {
+      tok.kind = TOKEN_KIND_TYPEDEF;
+      tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor], 7); // 7 = strlen("typedef")
+      lexer->cursor += 7;
+
+      return tok;
+    }
+
+    // storage classes
+    for(size_t i = 0; i < zdx_arr_len(storage_classes); i++) {
+      const char *storage_class = storage_classes[i];
+
+      if (sv_begins_with_word_cstr(temp, storage_class)) {
+        const uint8_t token_length = storage_class_lengths[i];
+
+        tok.kind = TOKEN_KIND_STORAGE;
+        tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor], token_length);
+        lexer->cursor += token_length;
+
+        return tok;
+      }
+    }
+
+    // type qualifiers
+    for(size_t i = 0; i < zdx_arr_len(type_qualifiers); i++) {
+      const char *type_qualifier = type_qualifiers[i];
+
+      if (sv_begins_with_word_cstr(temp, type_qualifier)) {
+        const uint8_t token_length = type_qualifiers_lengths[i];
+
+        tok.kind = TOKEN_KIND_QUALIFIER;
+        tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor], token_length);
+        lexer->cursor += token_length;
+
+        return tok;
+      }
+    }
+  } // sv_t temp; out of scope here
+
 
   // symbol
   if (isalpha(lexer->input->buf[lexer->cursor]) || lexer->input->buf[lexer->cursor] == '_') {

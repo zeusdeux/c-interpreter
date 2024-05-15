@@ -1,0 +1,10 @@
+*
+!.gitignore
+!LICENSE
+!*.md
+!*.c
+!*.h
+!tests/
+!tests/**
+!tests/**/*.c
+!tests/**/*.h

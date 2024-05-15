@@ -22,7 +22,10 @@ typedef enum {
   TOKEN_KIND_CPAREN,
   TOKEN_KIND_COMMA,
   TOKEN_KIND_SEMICOLON,
-  TOKEN_KIND_SYMBOL, // a23123_
+  TOKEN_KIND_TYPEDEF,
+  TOKEN_KIND_STORAGE, // static, extern, auto, register and _Thread_local
+  TOKEN_KIND_QUALIFIER, // const, restrict, volatile, _Atomic
+  TOKEN_KIND_SYMBOL,
   TOKEN_KIND_STRING,
   TOKEN_KIND_INT,
   TOKEN_KIND_FLOAT,
