@@ -60,6 +60,11 @@ static const char *token_to_str[] = {
 _Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
                "Some token kinds are missing their corresponding strings in token to string map");
 
+const char* token_kind_to_cstr(token_kind_t kind)
+{
+  return token_to_str[kind];
+}
+
 void print_token(const token_t tok)
 {
   if (tok.kind == TOKEN_KIND_END) {

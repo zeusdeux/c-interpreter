@@ -39,6 +39,7 @@ typedef struct {
   const char *err;
 } token_t;
 
+const char* token_kind_to_cstr(token_kind_t kind);
 void print_token(const token_t tok);
 token_t get_next_token(lexer_t lexer[const static 1]);
 token_t peek_next_token(const lexer_t lexer[const static 1]);

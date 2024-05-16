@@ -102,16 +102,32 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     }
   }
 
-  exactly_one(lexer, TOKEN_KIND_EQL, NULL);
+  if (!exactly_one(lexer, TOKEN_KIND_EQL, NULL)) {
+    // return a failure
+  }
+
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   sv_t value = {0};
-  bool got_value = exactly_one(lexer, TOKEN_KIND_INT, &value) ||
-    exactly_one(lexer, TOKEN_KIND_FLOAT, &value) ||
-    exactly_one(lexer, TOKEN_KIND_STRING, &value) ||
-    exactly_one(lexer, TOKEN_KIND_SYMBOL, &value);
+  token_kind_t value_kind = {0};
+  token_kind_t value_kinds[] = {
+    TOKEN_KIND_INT,
+    TOKEN_KIND_FLOAT,
+    TOKEN_KIND_STRING,
+    TOKEN_KIND_SYMBOL,
+  };
+  bool found_value = false;
+  for (size_t i = 0; i < zdx_arr_len(value_kinds); i++) {
+    token_kind_t kind = value_kinds[i];
 
-  if (!got_value) {
+    if (exactly_one(lexer, kind, &value)) {
+      value_kind = kind;
+      found_value = true;
+      break;
+    }
+  }
+
+  if (!found_value) {
     // return a failure
   }
 
@@ -124,7 +140,7 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
   for (size_t i = 0; i < symbols_count; i++) {
     log(L_INFO, "symbols: "SV_FMT, sv_fmt_args(symbols[i]));
   }
-  log(L_INFO, "value: "SV_FMT, sv_fmt_args(value));
+  log(L_INFO, "value: "SV_FMT" kind: %s", sv_fmt_args(value), token_kind_to_cstr(value_kind));
 
   assertm(false, "TODO: Implement");
   return (ast_node_t){0};
@@ -190,7 +206,7 @@ ast_node_t parse(arena_t *const arena, const char source[const static 1], const 
 
   tok = get_next_token(&lexer); // consume the end token
   // TODO(mudit): Get token string instead of printing token.kind as an integer
-  assertm(tok.kind == TOKEN_KIND_END, "Expected: all tokens to have been consumed, Received: %d", tok.kind);
+  assertm(tok.kind == TOKEN_KIND_END, "Expected: all tokens to have been consumed, Received: %s", token_kind_to_cstr(tok.kind));
 
   return (ast_node_t){0};
 }
