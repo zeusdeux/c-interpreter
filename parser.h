@@ -57,6 +57,6 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding);
  */
 
 ast_node_t parse_program(arena_t *const arena, lexer_t lexer[const static 1]);
-ast_node_t parse_assignment_statement(arena_t *const arena, const lexer_t lexer[const static 1]);
-ast_node_t parse_call_statement(arena_t *const arena, const lexer_t lexer[const static 1]);
+ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const static 1]);
+ast_node_t parse_call_statement(arena_t *const arena, lexer_t lexer[const static 1]);
 #endif // PARSER_H_
