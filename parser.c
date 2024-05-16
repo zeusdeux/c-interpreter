@@ -3,6 +3,70 @@
 
 #include "./parser.h"
 
+
+// ? op
+bool zero_or_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
+{
+  token_t tok = peek_next_token(lexer);
+
+  // zero match
+  if (tok.kind != kind) {
+    binding = NULL;
+    return true;
+  }
+
+  get_next_token(lexer);
+
+  binding->buf = tok.value.buf; // buf is an address in lexer->input buffer so their lifetimes are bound
+  binding->length = tok.value.length;
+
+  return true;
+}
+
+// * op
+bool zero_or_more(lexer_t *const lexer, token_kind_t kind)
+{
+  token_t tok = peek_next_token(lexer);
+
+  while(tok.kind == kind) {
+    get_next_token(lexer);
+    tok = peek_next_token(lexer);
+  }
+
+  return true;
+}
+
+// + op
+bool one_or_more(lexer_t *const lexer, token_kind_t kind)
+{
+  token_t tok = peek_next_token(lexer);
+
+  if (tok.kind != kind) {
+    return false;
+  }
+
+  get_next_token(lexer);
+
+  return zero_or_more(lexer, kind);
+}
+
+bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
+{
+  token_t tok = peek_next_token(lexer);
+
+  if (tok.kind != kind) {
+    binding = NULL;
+    return false;
+  }
+
+  get_next_token(lexer);
+
+  binding->buf = tok.value.buf; // buf is an address in lexer->input buffer so their lifetimes are bound
+  binding->length = tok.value.length;
+
+  return true;
+}
+
 void print_ast(const ast_node_t node)
 {
   (void) node;

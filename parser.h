@@ -29,13 +29,24 @@ void print_ast(const ast_node_t node);
 ast_node_t parse(arena_t *const arena, const char source[const static 1], const size_t source_length);
 
 /**
+ * Combinators
+ */
+// ? op
+bool zero_or_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding);
+// * op
+bool zero_or_more(lexer_t *const lexer, token_kind_t kind);
+// + op
+bool one_or_more(lexer_t *const lexer, token_kind_t kind);
+bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding);
+
+/**
  * Grammar:
  *
  * Program =
  *     AssignmentStatement | CallStatement
  *
  * AssignmentStatement =
- *     ws* <qualifier>? ws+ <symbol> ws+ <star>? ws* <symbol> ws* <eql> ws* <Expression> ws* <semi>
+ *     ws* (<storage> ws+)? <qualifier>? ws+ <symbol> ws+ <star>? ws* <symbol> ws* <eql> ws* <Expression> ws* <semi>
  *
  * CallStatement =
  *     ws* <symbol> ws* <oparen> ws* <Args> ws* <cparen> ws* <semi>
