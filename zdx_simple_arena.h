@@ -35,7 +35,20 @@
 #pragma GCC diagnostic error "-Wnull-dereference"
 #pragma GCC diagnostic error "-Wsign-conversion"
 
-typedef struct Arena arena_t;
+typedef struct Arena {
+  size_t size;
+  size_t offset;
+  void *arena;
+  /* This is to communicate errors outwards rather than for use by fns in this lib.
+   * Functions in this lib should do their own validations before proceeding.
+   * If their validations fail, then they should overwrite this with their own error.
+   * The user can therefore rely on "err" always pointing to the failure of the
+   * last function call. It is up to the user of this lib to always check this property
+   * before making calls to other functions in this lib if they want the failure reason
+   * for their last call.
+   */
+  const char *err;
+} arena_t;
 
 arena_t arena_create(const size_t sz);
 bool arena_free(arena_t *const ar);
@@ -63,20 +76,6 @@ void *arena_realloc(arena_t *const ar, void *ptr, const size_t old_sz, const siz
 #define ar_dbg(...)
 #endif
 
-typedef struct Arena {
-  size_t size;
-  size_t offset;
-  void *arena;
-  /* This is to communicate errors outwards rather than for use by fns in this lib.
-   * Functions in this lib should do their own validations before proceeding.
-   * If their validations fail, then they should overwrite this with their own error.
-   * The user can therefore rely on "err" always pointing to the failure of the
-   * last function call. It is up to the user of this lib to always check this property
-   * before making calls to other functions in this lib if they want the failure reason
-   * for their last call.
-   */
-  const char *err;
-} arena_t;
 
 /* gg windows */
 #if defined(__unix__) || defined(__unix) || defined(__linux__) || defined(__APPLE__) || defined(__MACH__)

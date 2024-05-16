@@ -66,11 +66,12 @@
   _Pragma("GCC diagnostic pop")
 
 // Unsafe ops throw
-#define da_push_(da, els, reqd_cap)                                                                                       \
+#define da_push_(arena, da, els, reqd_cap)                                                                                \
   _Pragma("GCC diagnostic push")                                                                                          \
   _Pragma("GCC diagnostic ignored \"-Wgnu-statement-expression-from-macro-expansion\"")                                   \
   ({                                                                                                                      \
     dbg_da(">>", da);                                                                                                     \
+    DA_ASSERT((arena) != NULL, "[zdx_da] Arena cannot be null");                                                          \
     DA_ASSERT((da) != NULL, "[zdx_da] Cannot operate on NULL container");                                                 \
     DA_ASSERT((!(da)->capacity && !(da)->items && !(da)->length) || ((da)->capacity && (da)->items),                      \
               "[zdx_da] Invalid container. Either all members must be zero or both capacity and items must be non-zero"); \
@@ -86,7 +87,8 @@
       while((da)->capacity < ((reqd_cap) + (da)->length)) {                                                               \
         (da)->capacity *= DA_RESIZE_FACTOR;                                                                               \
       }                                                                                                                   \
-      (da)->items = DA_REALLOC((da)->items, (da)->capacity*sizeof(*(da)->items));                                         \
+      (da)->items = DA_REALLOC((arena), (da)->items, (da)->length, (da)->capacity*sizeof(*(da)->items));                  \
+      DA_ASSERT(!(arena)->err, "[zdx_da] Expected: memory allocation to succeed, Received: %s", (arena)->err);            \
       DA_ASSERT((da)->items, "[zdx_da] Allocation failed");                                                               \
       dbg("++ resized\t\t\t| new capacity %zu", (da)->capacity);                                                          \
     }                                                                                                                     \
@@ -100,7 +102,7 @@
   })                                                                                                                      \
   _Pragma("GCC diagnostic pop")
 
-#define da_push(da, ...) da_push_(da,                                            \
+#define da_push(arena, da, ...) da_push_(arena, da,                      \
                                   ((__typeof__((__VA_ARGS__))[]){__VA_ARGS__}),  \
                                   zdx_arr_len(((__typeof__((__VA_ARGS__))[]){__VA_ARGS__})));
 
