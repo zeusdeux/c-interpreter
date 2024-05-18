@@ -1,0 +1,17 @@
+const int c = 100;
+int *d = &c;
+const char *str = "this is a test";
+const char **somestr1 = NULL;
+const char *const conststr = "brooo";
+const char *const *somestr2 = NULL;
+static const char *const *const potato = &conststr;
+static const char *str2 = NULL;
+static long long int m = 1000;;
+static const unsigned short int joker = 200;
+unsigned short int * k = &joker;
+unsigned short int * *l = &k;
+unsigned short int **m = &k;
+unsigned short int *const *n = &k;
+c = 200;
+str = "new string";
+str2 = str;

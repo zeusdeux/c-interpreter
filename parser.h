@@ -8,21 +8,40 @@
 
 
 typedef enum {
-  AST_NODE_KIND_EMPTY,
   AST_NODE_KIND_UNKNOWN,
   AST_NODE_KIND_PROGRAM,
   AST_NODE_KIND_DECLARATION,
   AST_NODE_KIND_ASSIGNMENT,
-  AST_NODE_KIND_DECLARATION_AND_ASSIGNMENT,
   AST_NODE_KIND_CALL,
   AST_NODE_KIND_COUNT
 } ast_node_kind_t;
 
 typedef struct ast_node_t {
   ast_node_kind_t kind;
-  size_t length;
-  size_t capacity;
-  struct ast_node_t *items;
+  union {
+    struct {
+      bool addr_of_op;
+      token_kind_t value_kind;
+      // TODO(mudit): can these just be sv_t as well so we have no allocations necessary?
+      const char* storage_class;
+      const char* type_qualifier;
+      const char* datatype;
+      const char* identifier;
+      size_t dereferences_count;
+      /* const char **deference_qualifiers; */ // add in a bit
+      union {
+        unsigned int unsigned_integer;
+        struct {
+          size_t length;
+          char *value;
+        } string;
+        struct {
+          size_t length;
+          char *value;
+        } symbol;
+      } value;
+    } assignment_stmt;
+  };
   const char *err;
 } ast_node_t;
 
