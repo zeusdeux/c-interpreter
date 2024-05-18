@@ -23,7 +23,7 @@ int main(void)
   assertm(!arena.err, "Expected: arena creation to succeed, Received: %s", arena.err);
   log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena.offset ? arena.offset - 1: 0);
 
-  fl_content_t fc = fl_read_file(&arena, "./tests/mocks/main.c", "r");
+  fl_content_t fc = fl_read_file(&arena, "./tests/mocks/assigments.c", "r");
 
   if (fc.err) {
     log(L_ERROR, "Error: %s", fc.err);

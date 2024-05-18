@@ -47,12 +47,14 @@ static const char *token_to_str[] = {
   "TOKEN_KIND_CPAREN",
   "TOKEN_KIND_COMMA",
   "TOKEN_KIND_SEMICOLON",
+  "TOKEN_KIND_AMPERSAND",
   "TOKEN_KIND_TYPEDEF",
   "TOKEN_KIND_STORAGE", // static, extern, auto, register and _Thread_local
   "TOKEN_KIND_QUALIFIER", // const, restrict, volatile, _Atomic
   "TOKEN_KIND_SYMBOL",
   "TOKEN_KIND_STRING",
-  "TOKEN_KIND_INT",
+  "TOKEN_KIND_SIGNED_INT",
+  "TOKEN_KIND_UNSIGNED_INT",
   "TOKEN_KIND_FLOAT",
   "TOKEN_KIND_UNKNOWN",
 };
@@ -161,6 +163,13 @@ token_t get_next_token(lexer_t lexer[const static 1])
     return tok;
   }
 
+  if (lexer->input->buf[lexer->cursor] == '&') {
+    tok.kind = TOKEN_KIND_AMPERSAND;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
+
+    return tok;
+  }
+
   {
     sv_t temp = {
       .buf = &lexer->input->buf[lexer->cursor],
@@ -253,6 +262,23 @@ token_t get_next_token(lexer_t lexer[const static 1])
 
     assertm(false, "UNREACHABLE: Expected TOKEN_KIND_STRING or "
             "TOKEN_KIND_UNKNOWN to have already been returned");
+  }
+
+  // unsigned int
+  if (isdigit(lexer->input->buf[lexer->cursor])) {
+    size_t length = 1;
+
+    tok.kind = TOKEN_KIND_UNSIGNED_INT;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], length);
+
+    while (isdigit(lexer->input->buf[lexer->cursor])) {
+      lexer->cursor++;
+      length++;
+    }
+
+    tok.value.length = length;
+
+    return tok;
   }
 
   assertm(false, "TODO: implement lexing of other token types");
