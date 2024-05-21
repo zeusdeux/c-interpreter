@@ -15,3 +15,6 @@ unsigned short int *const *n = &k;
 c = 200;
 str = "new string";
 str2 = str;
+*m = asd;
+**m = asd;
+***m = asd;

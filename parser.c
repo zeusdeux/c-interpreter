@@ -21,13 +21,18 @@ void print_ast(const ast_node_t node)
   log(L_INFO, "Node kind: %s", node_kind_to_cstr[node.kind]);
   switch(node.kind) {
   case AST_NODE_KIND_ASSIGNMENT: {
-    log(L_INFO, "Storage class: %s", node.assignment_stmt.storage_class);
-    log(L_INFO, "Type qualifier: %s", node.assignment_stmt.type_qualifier);
-    log(L_INFO, "Datatype: %s", node.assignment_stmt.datatype);
-    log(L_INFO, "Identifier: %s", node.assignment_stmt.identifier);
-    log(L_INFO, "Deref count: %zu", node.assignment_stmt.dereferences_count);
+    log(L_INFO, "Storage class: "SV_FMT, sv_fmt_args(node.assignment_stmt.storage_class));
+    log(L_INFO, "Type qualifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.type_qualifier));
+    log(L_INFO, "Typenames count: %zu", node.assignment_stmt.datatype.length);
+    for (size_t i = 0; i < node.assignment_stmt.datatype.length; i++) {
+      log(L_INFO, "Typename: "SV_FMT, sv_fmt_args(node.assignment_stmt.datatype.typenames[i]));
+    }
+    log(L_INFO, "Deref count: %zu", node.assignment_stmt.dereference.length);
+    for (size_t i = 0; i < node.assignment_stmt.dereference.length; i++) {
+      log(L_INFO, "Deref qualifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.dereference.qualifiers[i]));
+    }
+    log(L_INFO, "Identifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.identifier));
     log(L_INFO, "Address of op in use? %s", node.assignment_stmt.addr_of_op ? "true" : "false");
-
     log(L_INFO, "Value kind: %s", token_kind_to_cstr(node.assignment_stmt.value_kind));
 
     switch(node.assignment_stmt.value_kind) {
@@ -35,10 +40,10 @@ void print_ast(const ast_node_t node)
       log(L_INFO, "Value: %u", node.assignment_stmt.value.unsigned_integer);
     } break;
     case TOKEN_KIND_STRING: {
-      log(L_INFO, "Value: %s, length: %zu", node.assignment_stmt.value.string.value, node.assignment_stmt.value.string.length);
+      log(L_INFO, "Value: "SV_FMT", length: %zu", sv_fmt_args(node.assignment_stmt.value.string), node.assignment_stmt.value.string.length);
     } break;
     case TOKEN_KIND_SYMBOL: {
-      log(L_INFO, "Value: %s, length: %zu", node.assignment_stmt.value.symbol.value, node.assignment_stmt.value.symbol.length);
+      log(L_INFO, "Value: "SV_FMT", length: %zu", sv_fmt_args(node.assignment_stmt.value.symbol), node.assignment_stmt.value.symbol.length);
     } break;
     default: assertm(false, "Unsupported value type in assignment ast node %d", node.assignment_stmt.value_kind);
     }
@@ -126,6 +131,10 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
 
 // ------------------------------------ SUB-PARSERS ------------------------------------
 
+// ast_node_t *parse_assignment_statement_cache[PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH] = {0};
+// cache index = lexer->cursor % PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH
+// cache value = node being returned
+// use cache as first line of this function to not repeat work
 ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const static 1])
 {
   zero_or_more(lexer, TOKEN_KIND_WS);
@@ -140,12 +149,6 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
   size_t datatypes_count = 0;
   while(exactly_one(lexer, TOKEN_KIND_SYMBOL, &datatypes[datatypes_count]) && one_or_more(lexer, TOKEN_KIND_WS)) {
     datatypes_count++;
-  }
-
-  if (!datatypes_count) {
-    ast_node_t node = {0};
-    node.err = "No datatypes found";
-    return node;
   }
 
   size_t star_count = 0;
@@ -169,6 +172,12 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     exactly_one(lexer, TOKEN_KIND_SYMBOL, &var_name);
     one_or_more(lexer, TOKEN_KIND_WS);
   } else {
+    if (!datatypes_count) {
+      ast_node_t node = {0};
+      node.err = "No datatypes/identifiers found";
+      return node;
+    }
+
     // if no '*' found, then the variable name as been collected
     // into the datatypes array so we pop the last element out
     // as the variable name
@@ -225,83 +234,68 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     return node;
   }
 
-  /* log(L_INFO, "storage: "SV_FMT, sv_fmt_args(storage_class)); */
-  /* log(L_INFO, "qualifier: "SV_FMT, sv_fmt_args(type_qualifier)); */
-  /* log(L_INFO, "datatypes count: %zu", datatypes_count); */
-
-  size_t datatypes_allocation_length = 0;
+  dbg("storage: "SV_FMT, sv_fmt_args(storage_class));
+  dbg("qualifier: "SV_FMT, sv_fmt_args(type_qualifier));
+  dbg("datatypes count: %zu", datatypes_count);
   for (size_t i = 0; i < datatypes_count; i++) {
-    /* log(L_INFO, "datatypes: "SV_FMT, sv_fmt_args(datatypes[i])); */
-    // + 1 for the whitespace between for e.g., unsigned long long and then \0 at the end in the last iteration of this loop
-    datatypes_allocation_length += datatypes[i].length + 1;
+    dbg("datatypes: "SV_FMT, sv_fmt_args(datatypes[i]));
   }
+  dbg("stars: %zu", star_count);
+  for(size_t i = 0; i < star_qualifiers_count; i++) {
+    dbg("star %zu qualifier: "SV_FMT, i, sv_fmt_args(star_qualifiers[i]));
+  }
+  dbg("variable name: "SV_FMT, sv_fmt_args(var_name));
+  dbg("address of operator: %s", addr_of_op.buf && addr_of_op.length ? "true" : "false");
+  dbg("value: "SV_FMT" kind: %s", sv_fmt_args(value), token_kind_to_cstr(value_kind));
+  dbg("--------------------");
 
-  /* log(L_INFO, "stars: %zu", star_count); */
-  /* for(size_t i = 0; i < star_qualifiers_count; i++) { */
-  /*   log(L_INFO, "star %zu qualifier: "SV_FMT, i, sv_fmt_args(star_qualifiers[i])); */
-  /* } */
-  /* log(L_INFO, "variable name: "SV_FMT, sv_fmt_args(var_name)); */
-  /* log(L_INFO, "address of operator: %s", addr_of_op.buf && addr_of_op.length ? "true" : "false"); */
-  /* log(L_INFO, "value: "SV_FMT" kind: %s", sv_fmt_args(value), token_kind_to_cstr(value_kind)); */
-  /* log(L_INFO, "--------------------"); */
-
+  // Build assignment_statement AST node
   // TODO(mudit): Do we even need allocation? Why not make values in the node be sv_t as well?
+  // TODO(mudit): Use arena based string builder where string forms of sv_t are needed
+  // TODO(mudit): Error handling
   ast_node_t node = {0};
   node.kind = AST_NODE_KIND_ASSIGNMENT;
 
   if (!sv_is_empty(storage_class)) {
-    char *storage_class_cstr = arena_calloc(arena, storage_class.length + 1, sizeof(*storage_class_cstr));
-    snprintf(storage_class_cstr, storage_class.length + 1, SV_FMT, sv_fmt_args(storage_class));
-    node.assignment_stmt.storage_class = storage_class_cstr;
+    node.assignment_stmt.storage_class = storage_class;
   }
 
   if (!sv_is_empty(type_qualifier)) {
-    char *type_qualifier_cstr = arena_calloc(arena, type_qualifier.length + 1, sizeof(*type_qualifier_cstr));
-    snprintf(type_qualifier_cstr, type_qualifier.length + 1, SV_FMT, sv_fmt_args(type_qualifier));
-    node.assignment_stmt.type_qualifier = type_qualifier_cstr;
+    node.assignment_stmt.type_qualifier = type_qualifier;
   }
 
-  char *datatype_cstr = arena_calloc(arena, datatypes_allocation_length, sizeof(*datatype_cstr));
-  // TODO(mudit): Replace logic above and below with a string builder that supports arenas
+  // Move datatypes off stack into heap as it's an array
+  sv_t *typenames = arena_alloc(arena, sizeof(*typenames) * datatypes_count);
   for (size_t i = 0; i < datatypes_count; i++) {
-    sv_t datatype = datatypes[i];
-    size_t offset = i == 0 ? 0 : datatypes[i - 1].length + 1;
-    snprintf(datatype_cstr + offset, datatype.length + 2, i == 0 ? SV_FMT : " "SV_FMT, sv_fmt_args(datatype));
+    typenames[i] = datatypes[i];
   }
-  node.assignment_stmt.datatype = datatype_cstr;
+  node.assignment_stmt.datatype.typenames = typenames;
+  node.assignment_stmt.datatype.length = datatypes_count;
 
-  char *identifier_cstr = arena_calloc(arena, var_name.length + 1, sizeof(*identifier_cstr));
-  snprintf(identifier_cstr, var_name.length + 1, SV_FMT, sv_fmt_args(var_name));
-  node.assignment_stmt.identifier = identifier_cstr;
+  sv_t *dereferences_qualifiers = arena_alloc(arena, sizeof(*dereferences_qualifiers) * star_qualifiers_count);
+  for (size_t i = 0; i < star_qualifiers_count; i++) {
+    dereferences_qualifiers[i] = star_qualifiers[i];
+  }
+  node.assignment_stmt.dereference.length = star_count;
+  node.assignment_stmt.dereference.qualifiers = dereferences_qualifiers;
 
-  // TODO(mudit): Add the deference aka star qualifiers to the node
-  node.assignment_stmt.dereferences_count = star_count;
-
+  node.assignment_stmt.addr_of_op = !sv_is_empty(addr_of_op);
+  node.assignment_stmt.identifier = var_name;
 
   node.assignment_stmt.value_kind = value_kind;
   if (value_kind == TOKEN_KIND_UNSIGNED_INT) {
     char *value_cstr = arena_calloc(arena, value.length + 1, sizeof(*value_cstr));
     snprintf(value_cstr, value.length + 1, SV_FMT, sv_fmt_args(value));
-    // TODO(mudit): Error handling and support for hex, octal, etc bases
+    // TODO(mudit): Error handling and support for hex, octal, etc values and bases (gotta add to lexer first)
     node.assignment_stmt.value.unsigned_integer = strtoul(value_cstr, NULL, 10);
   }
   if (value_kind == TOKEN_KIND_STRING) {
-    char *value_cstr = arena_calloc(arena, value.length + 1, sizeof(*value_cstr));
-    snprintf(value_cstr, value.length + 1, SV_FMT, sv_fmt_args(value));
-    // TODO(mudit): Error handling and support for hex, octal, etc bases
-    node.assignment_stmt.value.string.value = value_cstr;
-    node.assignment_stmt.value.string.length = value.length;
+    node.assignment_stmt.value.string = value;
   }
   if (value_kind == TOKEN_KIND_SYMBOL) {
-    char *value_cstr = arena_calloc(arena, value.length + 1, sizeof(*value_cstr));
-    snprintf(value_cstr, value.length + 1, SV_FMT, sv_fmt_args(value));
-    // TODO(mudit): Error handling and support for hex, octal, etc bases
-    node.assignment_stmt.value.string.value = value_cstr;
-    node.assignment_stmt.value.string.length = value.length;
+    node.assignment_stmt.value.symbol = value;
   }
   // TODO(mudit): Add support for other value types
-
-  node.assignment_stmt.addr_of_op = !sv_is_empty(addr_of_op);
 
   return node;
 }
@@ -319,6 +313,7 @@ ast_node_t parse_call_statement(arena_t *const arena, lexer_t lexer[const static
 // you want to while(true) this until all tokens are done or if you wanna use recursion somehow
 ast_node_t parse(arena_t *const arena, const char source[const static 1], const size_t source_length)
 {
+  /* printf("********* sizeof(ast_node_t): %zu bytes\n", sizeof(ast_node_t)); */
   const sv_t input = sv_from_buf(source, source_length);
   lexer_t lexer = {0};
   lexer.input = &input;

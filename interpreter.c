@@ -21,7 +21,8 @@ int main(void)
   // this will allocate 1 MB + extra bytes to align to page size boundary (4096 on Intel, 16384 on M1)
   arena_t arena = arena_create(1 MB);
   assertm(!arena.err, "Expected: arena creation to succeed, Received: %s", arena.err);
-  log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena.offset ? arena.offset - 1: 0);
+  size_t arena_used_bytes = arena.offset ? arena.offset - 1: 0;
+  log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena_used_bytes);
 
   fl_content_t fc = fl_read_file(&arena, "./tests/mocks/assigments.c", "r");
 
@@ -39,7 +40,9 @@ int main(void)
   // walk ast and interpret
   // TODO: interpret(program);
 
-  log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena.offset ? arena.offset - 1: 0);
+  arena_used_bytes = arena.offset ? arena.offset - 1: 0;
+  log(L_INFO, "Arena size = %zu KB, used = %zu bytes, used by file = %zu bytes, used by parser = %zu bytes",
+      arena.size / 1024, arena_used_bytes, fc.size, arena_used_bytes - fc.size);
 
   // don't really need to deinit as the arena that'd holding the file bytes is freed next anyway
   fc_deinit(&fc);

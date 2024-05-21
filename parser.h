@@ -6,6 +6,7 @@
 #include "./lexer.h"
 #include "./zdx_simple_arena.h"
 
+#define PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH 128
 
 typedef enum {
   AST_NODE_KIND_UNKNOWN,
@@ -20,25 +21,23 @@ typedef struct ast_node_t {
   ast_node_kind_t kind;
   union {
     struct {
+      sv_t storage_class;
+      sv_t type_qualifier;
+      struct {
+        size_t length;
+        sv_t *typenames;
+      } datatype;
+      sv_t identifier;
+      struct {
+        size_t length;
+        sv_t *qualifiers;
+      } dereference;
       bool addr_of_op;
       token_kind_t value_kind;
-      // TODO(mudit): can these just be sv_t as well so we have no allocations necessary?
-      const char* storage_class;
-      const char* type_qualifier;
-      const char* datatype;
-      const char* identifier;
-      size_t dereferences_count;
-      /* const char **deference_qualifiers; */ // add in a bit
       union {
         unsigned int unsigned_integer;
-        struct {
-          size_t length;
-          char *value;
-        } string;
-        struct {
-          size_t length;
-          char *value;
-        } symbol;
+        sv_t string;
+        sv_t symbol;
       } value;
     } assignment_stmt;
   };
