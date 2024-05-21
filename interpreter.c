@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  log(L_INFO, "File size = %zu bytes, contents: \n%s", fc.size, (char *)fc.contents);
+  log(L_INFO, "File size = %zu bytes, path: %s, contents: \n%s", fc.size, argv[1], (char *)fc.contents);
 
   // parse
   ast_node_t program = parse(&arena, fc.contents, fc.size);
