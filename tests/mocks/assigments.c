@@ -17,4 +17,4 @@ str = "new string";
 str2 = str;
 *m = asd;
 **m = asd;
-***m = asd;
+***m = &asd;

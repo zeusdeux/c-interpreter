@@ -16,15 +16,18 @@
 
 
 // gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c parser.c && ./interpreter
-int main(void)
+int main(int argc, char *argv[])
 {
+  if (argc < 2) {
+    bail("Usage: ./interpreter <path to file to interpret>");
+  }
   // this will allocate 1 MB + extra bytes to align to page size boundary (4096 on Intel, 16384 on M1)
   arena_t arena = arena_create(1 MB);
   assertm(!arena.err, "Expected: arena creation to succeed, Received: %s", arena.err);
   size_t arena_used_bytes = arena.offset ? arena.offset - 1: 0;
   log(L_INFO, "Arena size = %zu KB, used = %zu bytes", arena.size / 1024, arena_used_bytes);
 
-  fl_content_t fc = fl_read_file(&arena, "./tests/mocks/assigments.c", "r");
+  fl_content_t fc = fl_read_file(&arena, argv[1], "r");
 
   if (fc.err) {
     log(L_ERROR, "Error: %s", fc.err);

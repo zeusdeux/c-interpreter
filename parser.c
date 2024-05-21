@@ -23,16 +23,16 @@ void print_ast(const ast_node_t node)
   case AST_NODE_KIND_ASSIGNMENT: {
     log(L_INFO, "Storage class: "SV_FMT, sv_fmt_args(node.assignment_stmt.storage_class));
     log(L_INFO, "Type qualifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.type_qualifier));
-    log(L_INFO, "Typenames count: %zu", node.assignment_stmt.datatype.length);
-    for (size_t i = 0; i < node.assignment_stmt.datatype.length; i++) {
+    log(L_INFO, "Typenames count: %zu", node.assignment_stmt.datatype.count);
+    for (size_t i = 0; i < node.assignment_stmt.datatype.count; i++) {
       log(L_INFO, "Typename: "SV_FMT, sv_fmt_args(node.assignment_stmt.datatype.typenames[i]));
     }
-    log(L_INFO, "Deref count: %zu", node.assignment_stmt.dereference.length);
-    for (size_t i = 0; i < node.assignment_stmt.dereference.length; i++) {
+    log(L_INFO, "Deref count: %zu", node.assignment_stmt.dereference.count);
+    for (size_t i = 0; i < node.assignment_stmt.dereference.count; i++) {
       log(L_INFO, "Deref qualifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.dereference.qualifiers[i]));
     }
     log(L_INFO, "Identifier: "SV_FMT, sv_fmt_args(node.assignment_stmt.identifier));
-    log(L_INFO, "Address of op in use? %s", node.assignment_stmt.addr_of_op ? "true" : "false");
+    log(L_INFO, "Address-of op (&) in use? %s", node.assignment_stmt.addr_of_op ? "true" : "false");
     log(L_INFO, "Value kind: %s", token_kind_to_cstr(node.assignment_stmt.value_kind));
 
     switch(node.assignment_stmt.value_kind) {
@@ -48,6 +48,14 @@ void print_ast(const ast_node_t node)
     default: assertm(false, "Unsupported value type in assignment ast node %d", node.assignment_stmt.value_kind);
     }
   } break;
+
+  case AST_NODE_KIND_CALL: {
+    log(L_INFO, "Function name: "SV_FMT, sv_fmt_args(node.call_stmt.name));
+    for (size_t i = 0; i < node.call_stmt.args.count; i++) {
+      log(L_INFO, "Arg: "SV_FMT, sv_fmt_args(node.call_stmt.args.values[i]));
+    }
+  } break;
+
   case AST_NODE_KIND_UNKNOWN: {
     if (node.err) {
       log(L_INFO, "Err: %s", node.err);
@@ -129,14 +137,61 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
 }
 
 
+// ------------------------------------ PARSE CACHE HELPERS ------------------------------------
+
+typedef struct parse_cache {
+  bool occupied;
+  size_t cursor;
+  ast_node_t node;
+} parse_cache_t;
+
+typedef parse_cache_t parse_cache_entry_t;
+
+static inline size_t parse_cache_add(parse_cache_t cache[const static 1], const ast_node_t node, const size_t cursor, const size_t idx)
+{
+  cache[idx] = (parse_cache_t){
+    .occupied = true,
+    .cursor = cursor,
+    .node = node
+  };
+
+  return idx;
+}
+
+static inline parse_cache_entry_t parse_cache_get(parse_cache_t cache[const static 1], const size_t cursor, const size_t idx)
+{
+  parse_cache_entry_t entry = cache[idx];
+
+  // this check is to handle collisions and make sure we return the
+  // cached entry only if it's for the current lexer->cursor value
+  if (entry.occupied && cursor == entry.cursor) {
+    return entry;
+  }
+
+  cache[idx] = (parse_cache_t){0};
+  return cache[idx]; // has occupied set to false post invalidation above
+}
+
+
 // ------------------------------------ SUB-PARSERS ------------------------------------
 
-// ast_node_t *parse_assignment_statement_cache[PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH] = {0};
-// cache index = lexer->cursor % PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH
-// cache value = node being returned
-// use cache as first line of this function to not repeat work
-ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const static 1])
+parse_cache_t parse_assignment_statement_cache[PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH] = {0};
+ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
 {
+  const size_t cursor_at_start = lexer->cursor;
+  const size_t cache_idx = cursor_at_start % zdx_arr_len(parse_assignment_statement_cache);
+  const parse_cache_entry_t cache_entry = parse_cache_get(parse_assignment_statement_cache, cursor_at_start, cache_idx);
+
+  if (cache_entry.occupied) {
+    assertm(cache_entry.cursor == cursor_at_start,
+            "Expected: cursor to be %zu, Received: %zu", cursor_at_start, cache_entry.cursor);
+
+    log(L_INFO, "Cache hit: idx = %zu, cursor = %zu", cache_idx, cache_entry.cursor); // TODO(mudit): Change to dbg
+    print_ast(cache_entry.node); // TODO(mudit): make this a no-op in non-debug builds
+
+    return cache_entry.node;
+  }
+
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   sv_t storage_class = {0};
@@ -164,6 +219,8 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
   if (star_count != star_qualifiers_count) {
     ast_node_t node = {0};
     node.err = "Number of qualifiers attached to the * (star) op do not match the number of star ops";
+    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
     return node;
   }
 
@@ -175,6 +232,8 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     if (!datatypes_count) {
       ast_node_t node = {0};
       node.err = "No datatypes/identifiers found";
+      parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
       return node;
     }
 
@@ -188,12 +247,16 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
   if (sv_is_empty(var_name)) {
     ast_node_t node = {0};
     node.err = "No variable name found";
+    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
     return node;
   }
 
   if (!exactly_one(lexer, TOKEN_KIND_EQL, NULL)) {
     ast_node_t node = {0};
     node.err = "No '=' token found";
+    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
     return node;
   }
 
@@ -225,12 +288,16 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
   if (!found_value) {
     ast_node_t node = {0};
     node.err = "No value assigned to variable";
+    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
     return node;
   }
 
   if (!one_or_more(lexer, TOKEN_KIND_SEMICOLON)) {
     ast_node_t node = {0};
     node.err = "Missing semicolon at the end of assignment statement";
+    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+
     return node;
   }
 
@@ -245,12 +312,11 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     dbg("star %zu qualifier: "SV_FMT, i, sv_fmt_args(star_qualifiers[i]));
   }
   dbg("variable name: "SV_FMT, sv_fmt_args(var_name));
-  dbg("address of operator: %s", addr_of_op.buf && addr_of_op.length ? "true" : "false");
+  dbg("address-of operator(&): %s", addr_of_op.buf && addr_of_op.length ? "true" : "false");
   dbg("value: "SV_FMT" kind: %s", sv_fmt_args(value), token_kind_to_cstr(value_kind));
   dbg("--------------------");
 
   // Build assignment_statement AST node
-  // TODO(mudit): Do we even need allocation? Why not make values in the node be sv_t as well?
   // TODO(mudit): Use arena based string builder where string forms of sv_t are needed
   // TODO(mudit): Error handling
   ast_node_t node = {0};
@@ -270,13 +336,13 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     typenames[i] = datatypes[i];
   }
   node.assignment_stmt.datatype.typenames = typenames;
-  node.assignment_stmt.datatype.length = datatypes_count;
+  node.assignment_stmt.datatype.count = datatypes_count;
 
   sv_t *dereferences_qualifiers = arena_alloc(arena, sizeof(*dereferences_qualifiers) * star_qualifiers_count);
   for (size_t i = 0; i < star_qualifiers_count; i++) {
     dereferences_qualifiers[i] = star_qualifiers[i];
   }
-  node.assignment_stmt.dereference.length = star_count;
+  node.assignment_stmt.dereference.count = star_count;
   node.assignment_stmt.dereference.qualifiers = dereferences_qualifiers;
 
   node.assignment_stmt.addr_of_op = !sv_is_empty(addr_of_op);
@@ -287,52 +353,130 @@ ast_node_t parse_assignment_statement(arena_t *const arena, lexer_t lexer[const 
     char *value_cstr = arena_calloc(arena, value.length + 1, sizeof(*value_cstr));
     snprintf(value_cstr, value.length + 1, SV_FMT, sv_fmt_args(value));
     // TODO(mudit): Error handling and support for hex, octal, etc values and bases (gotta add to lexer first)
+    // TODO(mudit): Implement an sv_to_ul to get rid of this allocation as it can be freed after we get
+    // the return value from strtoul()
     node.assignment_stmt.value.unsigned_integer = strtoul(value_cstr, NULL, 10);
-  }
-  if (value_kind == TOKEN_KIND_STRING) {
+  } else if (value_kind == TOKEN_KIND_STRING) {
     node.assignment_stmt.value.string = value;
-  }
-  if (value_kind == TOKEN_KIND_SYMBOL) {
+  } else if (value_kind == TOKEN_KIND_SYMBOL) {
     node.assignment_stmt.value.symbol = value;
+  } else {
+    assertm(false, "Unsupported value kind %d", value_kind);
   }
   // TODO(mudit): Add support for other value types
+
+  parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
+  return node;
+}
+
+parse_cache_t parse_call_statement_cache[PARSE_CALL_STATEMENT_CACHE_LENGTH] = {0};
+ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
+{
+  const size_t cursor_at_start = lexer->cursor;
+  const size_t cache_idx = cursor_at_start % zdx_arr_len(parse_call_statement_cache);
+  const parse_cache_entry_t cache_entry = parse_cache_get(parse_call_statement_cache, cursor_at_start, cache_idx);
+
+  if (cache_entry.occupied) {
+    assertm(cache_entry.cursor == cursor_at_start,
+            "Expected: cursor to be %zu, Received: %zu", cursor_at_start, cache_entry.cursor);
+
+    log(L_INFO, "Cache hit: idx = %zu, cursor = %zu", cache_idx, cache_entry.cursor); // TODO(mudit): Change to dbg
+    print_ast(cache_entry.node); // TODO(mudit): make this a no-op in non-debug builds
+
+    return cache_entry.node;
+  }
+
+  zero_or_more(lexer, TOKEN_KIND_WS);
+
+  sv_t fn_name = {0};
+  if(!exactly_one(lexer, TOKEN_KIND_SYMBOL, &fn_name)) {
+    ast_node_t node = {0};
+    node.err = "Missing function name";
+    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
+
+    return node;
+  }
+
+  zero_or_more(lexer, TOKEN_KIND_WS);
+
+  if (!exactly_one(lexer, TOKEN_KIND_OPAREN, NULL)) {
+    ast_node_t node = {0};
+    node.err = "Missing opening parenthesis";
+    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
+
+    return node;
+  }
+
+  zero_or_more(lexer, TOKEN_KIND_WS);
+
+  // TODO(mudit): Parse stuff between parens
+  /* ast_node_t expr_node = parse_expr(arena, lexer); */
+  /* if (expr_node.err) { */
+  /*   parse_cache_add(parse_call_statement_cache, expr_node, cursor_at_start, cache_idx); */
+  /*   return expr_node; */
+  /* } */
+
+  zero_or_more(lexer, TOKEN_KIND_WS);
+
+  if (!exactly_one(lexer, TOKEN_KIND_CPAREN, NULL)) {
+    ast_node_t node = {0};
+    node.err = "Missing closing parenthesis";
+    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
+
+    return node;
+  }
+
+  zero_or_more(lexer, TOKEN_KIND_WS);
+
+  one_or_more(lexer, TOKEN_KIND_SEMICOLON);
+
+  ast_node_t node = {0};
+  node.kind = AST_NODE_KIND_CALL;
+  node.call_stmt.name = fn_name;
 
   return node;
 }
 
-ast_node_t parse_call_statement(arena_t *const arena, lexer_t lexer[const static 1])
-{
-  (void) arena;
-  (void) lexer;
-  assertm(false, "TODO: Implement");
-  return (ast_node_t){0};
-}
-
-// TODO(mudit): memoize lexer->cursor + parser function that was called as the key and the value as the result
 // TODO(mudit): this function currently can only consume one statement and not more. Figure out if
 // you want to while(true) this until all tokens are done or if you wanna use recursion somehow
-ast_node_t parse(arena_t *const arena, const char source[const static 1], const size_t source_length)
+ast_node_t parse(arena_t arena[const static 1], const char source[const static 1], const size_t source_length)
 {
-  /* printf("********* sizeof(ast_node_t): %zu bytes\n", sizeof(ast_node_t)); */
   const sv_t input = sv_from_buf(source, source_length);
   lexer_t lexer = {0};
   lexer.input = &input;
 
+  uint8_t parser_choice = 0;
   token_t tok = peek_next_token(&lexer);
+  char *last_error = NULL;
 
   while (tok.kind != TOKEN_KIND_END) {
     if (tok.kind == TOKEN_KIND_NEWLINE) {
       tok = get_next_token(&lexer); // consume newline
     } else {
       lexer_t before = lexer;
-      ast_node_t node_assignment_statement = parse_assignment_statement(arena, &lexer);
+      ast_node_t node = {0};
 
-      print_ast(node_assignment_statement);
-      if (node_assignment_statement.kind == AST_NODE_KIND_UNKNOWN) {
-        log(L_ERROR, "Error: %s", node_assignment_statement.err);
+      switch(parser_choice) {
+      case 0: {
+        node = parse_assignment_statement(arena, &lexer);
+      } break;
+      case 1: {
+        node = parse_call_statement(arena, &lexer);
+      } break;
+      default: {
+        bail("Error: %s", last_error);
+      } break;
+      }
+
+      if (node.err) {
         reset_lexer(&lexer, before);
-        // TODO(mudit): Instead of bailing, switch the parser you want to use in the line above aka set next parser fn
-        bail("Nope");
+        // TODO(mudit): Instead of showing the error from the last parser, show error from the parser
+        // that had the longest match
+        last_error = (char *)node.err; // casting to get rid of the "const" qualifier used by node.err
+        parser_choice++;
+      } else {
+        parser_choice = 0;
+        print_ast(node);
       }
     }
 

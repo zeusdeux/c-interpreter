@@ -6,6 +6,7 @@
 #include "./lexer.h"
 #include "./zdx_simple_arena.h"
 
+#define PARSE_CALL_STATEMENT_CACHE_LENGTH 128
 #define PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH 128
 
 typedef enum {
@@ -18,30 +19,38 @@ typedef enum {
 } ast_node_kind_t;
 
 typedef struct ast_node_t {
-  ast_node_kind_t kind;
+  ast_node_kind_t kind; // 4 bytes padded to 8
   union {
     struct {
-      sv_t storage_class;
-      sv_t type_qualifier;
+      sv_t storage_class; // 16 bytes
+      sv_t type_qualifier; // 16 bytes
       struct {
-        size_t length;
-        sv_t *typenames;
-      } datatype;
-      sv_t identifier;
+        size_t count; // 8 bytes
+        sv_t *typenames; // 8 bytes
+      } datatype; // struct is 16 bytes
+      sv_t identifier; // 16 bytes
       struct {
-        size_t length;
-        sv_t *qualifiers;
-      } dereference;
-      bool addr_of_op;
-      token_kind_t value_kind;
+        size_t count; // 8 bytes
+        sv_t *qualifiers; // 8 bytes
+      } dereference; // struct is 16 bytes
+      bool addr_of_op; // 1 byte padded to 8 bytes
+      token_kind_t value_kind; // 4 bytes padded to 8 bytes TODO(mudit): The value kind should really always be an Expr not token related
       union {
-        unsigned int unsigned_integer;
-        sv_t string;
-        sv_t symbol;
-      } value;
+        unsigned int unsigned_integer; // 4 bytes
+        sv_t string; // 16 bytes
+        sv_t symbol; // 16 bytes
+      } value; // union is 16 bytes
     } assignment_stmt;
+
+    struct {
+      sv_t name;
+      struct {
+        size_t count;
+        sv_t *values;
+      } args;
+    } call_stmt; // TODO(mudit): This should really be call_expr
   };
-  const char *err;
+  const char *err; // 8 bytes
 } ast_node_t;
 
 void print_ast(const ast_node_t node);
