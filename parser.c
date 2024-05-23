@@ -71,7 +71,7 @@ void print_ast(const ast_node_t node)
 // ------------------------------------ COMBINATORS ------------------------------------
 
 // ? op
-bool zero_or_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
+bool zero_or_one(lexer_t lexer[const static 1], token_kind_t kind, sv_t *const binding)
 {
   token_t tok = peek_next_token(lexer);
 
@@ -137,61 +137,10 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
 }
 
 
-// ------------------------------------ PARSE CACHE HELPERS ------------------------------------
-
-typedef struct parse_cache {
-  bool occupied;
-  size_t cursor;
-  ast_node_t node;
-} parse_cache_t;
-
-typedef parse_cache_t parse_cache_entry_t;
-
-static inline size_t parse_cache_add(parse_cache_t cache[const static 1], const ast_node_t node, const size_t cursor, const size_t idx)
-{
-  cache[idx] = (parse_cache_t){
-    .occupied = true,
-    .cursor = cursor,
-    .node = node
-  };
-
-  return idx;
-}
-
-static inline parse_cache_entry_t parse_cache_get(parse_cache_t cache[const static 1], const size_t cursor, const size_t idx)
-{
-  parse_cache_entry_t entry = cache[idx];
-
-  // this check is to handle collisions and make sure we return the
-  // cached entry only if it's for the current lexer->cursor value
-  if (entry.occupied && cursor == entry.cursor) {
-    return entry;
-  }
-
-  cache[idx] = (parse_cache_t){0};
-  return cache[idx]; // has occupied set to false post invalidation above
-}
-
-
 // ------------------------------------ SUB-PARSERS ------------------------------------
 
-parse_cache_t parse_assignment_statement_cache[PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH] = {0};
 ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
 {
-  const size_t cursor_at_start = lexer->cursor;
-  const size_t cache_idx = cursor_at_start % zdx_arr_len(parse_assignment_statement_cache);
-  const parse_cache_entry_t cache_entry = parse_cache_get(parse_assignment_statement_cache, cursor_at_start, cache_idx);
-
-  if (cache_entry.occupied) {
-    assertm(cache_entry.cursor == cursor_at_start,
-            "Expected: cursor to be %zu, Received: %zu", cursor_at_start, cache_entry.cursor);
-
-    log(L_INFO, "Cache hit: idx = %zu, cursor = %zu", cache_idx, cache_entry.cursor); // TODO(mudit): Change to dbg
-    print_ast(cache_entry.node); // TODO(mudit): make this a no-op in non-debug builds
-
-    return cache_entry.node;
-  }
-
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   sv_t storage_class = {0};
@@ -219,7 +168,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   if (star_count != star_qualifiers_count) {
     ast_node_t node = {0};
     node.err = "Number of qualifiers attached to the * (star) op do not match the number of star ops";
-    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -232,7 +180,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
     if (!datatypes_count) {
       ast_node_t node = {0};
       node.err = "No datatypes/identifiers found";
-      parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
       return node;
     }
@@ -247,7 +194,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   if (sv_is_empty(var_name)) {
     ast_node_t node = {0};
     node.err = "No variable name found";
-    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -255,7 +201,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   if (!exactly_one(lexer, TOKEN_KIND_EQL, NULL)) {
     ast_node_t node = {0};
     node.err = "No '=' token found";
-    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -288,7 +233,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   if (!found_value) {
     ast_node_t node = {0};
     node.err = "No value assigned to variable";
-    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -296,7 +240,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   if (!one_or_more(lexer, TOKEN_KIND_SEMICOLON)) {
     ast_node_t node = {0};
     node.err = "Missing semicolon at the end of assignment statement";
-    parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -365,34 +308,17 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
   }
   // TODO(mudit): Add support for other value types
 
-  parse_cache_add(parse_assignment_statement_cache, node, cursor_at_start, cache_idx);
   return node;
 }
 
-parse_cache_t parse_call_statement_cache[PARSE_CALL_STATEMENT_CACHE_LENGTH] = {0};
 ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
 {
-  const size_t cursor_at_start = lexer->cursor;
-  const size_t cache_idx = cursor_at_start % zdx_arr_len(parse_call_statement_cache);
-  const parse_cache_entry_t cache_entry = parse_cache_get(parse_call_statement_cache, cursor_at_start, cache_idx);
-
-  if (cache_entry.occupied) {
-    assertm(cache_entry.cursor == cursor_at_start,
-            "Expected: cursor to be %zu, Received: %zu", cursor_at_start, cache_entry.cursor);
-
-    log(L_INFO, "Cache hit: idx = %zu, cursor = %zu", cache_idx, cache_entry.cursor); // TODO(mudit): Change to dbg
-    print_ast(cache_entry.node); // TODO(mudit): make this a no-op in non-debug builds
-
-    return cache_entry.node;
-  }
-
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   sv_t fn_name = {0};
   if(!exactly_one(lexer, TOKEN_KIND_SYMBOL, &fn_name)) {
     ast_node_t node = {0};
     node.err = "Missing function name";
-    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -402,7 +328,6 @@ ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[con
   if (!exactly_one(lexer, TOKEN_KIND_OPAREN, NULL)) {
     ast_node_t node = {0};
     node.err = "Missing opening parenthesis";
-    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }
@@ -412,7 +337,6 @@ ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[con
   // TODO(mudit): Parse stuff between parens
   /* ast_node_t expr_node = parse_expr(arena, lexer); */
   /* if (expr_node.err) { */
-  /*   parse_cache_add(parse_call_statement_cache, expr_node, cursor_at_start, cache_idx); */
   /*   return expr_node; */
   /* } */
 
@@ -421,7 +345,6 @@ ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[con
   if (!exactly_one(lexer, TOKEN_KIND_CPAREN, NULL)) {
     ast_node_t node = {0};
     node.err = "Missing closing parenthesis";
-    parse_cache_add(parse_call_statement_cache, node, cursor_at_start, cache_idx);
 
     return node;
   }

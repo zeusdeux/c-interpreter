@@ -6,8 +6,7 @@
 #include "./lexer.h"
 #include "./zdx_simple_arena.h"
 
-#define PARSE_CALL_STATEMENT_CACHE_LENGTH 128
-#define PARSE_ASSIGNMENT_STATEMENT_CACHE_LENGTH 128
+#define PARSE_CACHE_LENGTH 128
 
 typedef enum {
   AST_NODE_KIND_UNKNOWN,
