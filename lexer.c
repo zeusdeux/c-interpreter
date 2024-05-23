@@ -235,6 +235,18 @@ token_t get_next_token(lexer_t lexer[const static 1])
     return tok;
   }
 
+  // comment: single line
+  if (lexer->input->buf[lexer->cursor] == '/' && lexer->input->buf[lexer->cursor + 1] == '/') {
+    // swallow "//"
+    lexer->cursor += 2;
+    // swallow comment
+    while(lexer->input->buf[lexer->cursor] != '\n') {
+      lexer->cursor++;
+    }
+    // return token after comment
+    return get_next_token(lexer);
+  }
+
   // string
   if (lexer->input->buf[lexer->cursor] == '"') {
     lexer->cursor += 1;

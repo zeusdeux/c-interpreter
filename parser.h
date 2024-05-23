@@ -73,13 +73,27 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding);
  *     AssignmentStatement | CallStatement
  *
  * AssignmentStatement =
- *     ws* (<storage> ws+)? <qualifier>? ws+ <symbol> ws+ <star>? ws* <symbol> ws* <eql> ws* <Expression> ws* <semi>
+ *     (<storage> ws+)? (<qualifier> ws+)? (<symbol> ws+)+ (<star> ws* <qualifier>? ws*)* <symbol> ws* <eql> ws* <Expr> ws* <semi>
  *
  * CallStatement =
- *     ws* <symbol> ws* <oparen> ws* <Args> ws* <cparen> ws* <semi>
+ *     <symbol> ws* <oparen> ws* <Args> ws* <cparen> ws* <semi>
  *
  * Args =
- *     Empty | <Expression> ws* (<comma> ws* <Expression> ws*)*
+ *     Empty | <Expr> ws* (<comma> ws* <Expr> ws*)*
+ *
+ * Expr =
+ *     | <expr> + or - <expr>
+ *     | <expr> * or / <expr>
+ *     | <oparen> ws* <expr> ws* (<comma> ws* <expr> ws*)* <cparen>
+ *     | <ampersand> ws* <symbol>
+ *     | <star>* ws* <symbol>
+ *     | <literal>
+ *
+ * Literal =
+ *     | <string>
+ *     | <unsigned int>
+ *     | <signed int>
+ *     | <float>
  *
  */
 

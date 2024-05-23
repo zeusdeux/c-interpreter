@@ -139,10 +139,13 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
 
 // ------------------------------------ SUB-PARSERS ------------------------------------
 
+ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const static 1])
+{
+
+}
+
 ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
 {
-  zero_or_more(lexer, TOKEN_KIND_WS);
-
   sv_t storage_class = {0};
   exactly_one(lexer, TOKEN_KIND_STORAGE, &storage_class) && one_or_more(lexer, TOKEN_KIND_WS);
 
@@ -313,8 +316,6 @@ ast_node_t parse_assignment_statement(arena_t arena[const static 1], lexer_t lex
 
 ast_node_t parse_call_statement(arena_t arena[const static 1], lexer_t lexer[const static 1])
 {
-  zero_or_more(lexer, TOKEN_KIND_WS);
-
   sv_t fn_name = {0};
   if(!exactly_one(lexer, TOKEN_KIND_SYMBOL, &fn_name)) {
     ast_node_t node = {0};
@@ -373,8 +374,8 @@ ast_node_t parse(arena_t arena[const static 1], const char source[const static 1
   char *last_error = NULL;
 
   while (tok.kind != TOKEN_KIND_END) {
-    if (tok.kind == TOKEN_KIND_NEWLINE) {
-      tok = get_next_token(&lexer); // consume newline
+    if (tok.kind == TOKEN_KIND_WS || tok.kind == TOKEN_KIND_NEWLINE) {
+      tok = get_next_token(&lexer); // consume whitespace or newline
     } else {
       lexer_t before = lexer;
       ast_node_t node = {0};
@@ -387,7 +388,7 @@ ast_node_t parse(arena_t arena[const static 1], const char source[const static 1
         node = parse_call_statement(arena, &lexer);
       } break;
       default: {
-        bail("Error: %s", last_error);
+        bail("Parse error: %s", last_error);
       } break;
       }
 
