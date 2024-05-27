@@ -3,6 +3,7 @@
 asd
 &omg
 *test
+**potato
 20)0
 // -100
 // 100L

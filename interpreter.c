@@ -37,9 +37,17 @@ int main(int argc, char *argv[])
   log(L_INFO, "File size = %zu bytes, path: %s, contents: \n%s", fc.size, argv[1], (char *)fc.contents);
 
   // parse
-  ast_node_list_t program = parse(&arena, fc.path, fc.contents, fc.size);
+  ast_node_list_t program = parse(&arena, fc.contents, fc.size);
   for (size_t i = 0; i < program.length; i++) {
-    print_ast(program.items[i]);
+    ast_node_t node = program.items[i];
+
+    if (has_err(node)) {
+      // + 1's as bol, line, cursor are all zero-indexed
+      bail("%s:%zu:%zu: Error: %s \"%c\"",
+           fc.path, node.err.line + 1, node.err.cursor - node.err.bol + 1, node.err.msg, ((char *)fc.contents)[node.err.cursor]);
+    }
+
+    print_ast(node);
   }
 
   // walk ast and interpret

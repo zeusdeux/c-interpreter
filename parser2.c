@@ -56,27 +56,33 @@ static const char *unary_kind_name(const unary_op_kind_t kind)
   return unary_kind_to_str[kind];
 }
 
-void print_ast(const ast_node_t node)
+void print_ast_(const ast_node_t node, size_t depth)
 {
-  log(L_INFO, "Node kind: %s", node_kind_name(node.kind));
+  for (size_t i = 0; i < depth; i++) {
+    fprintf(stderr, "   ");
+  }
+  fprintf(stderr, "Node kind: %s\n", node_kind_name(node.kind));
+  for (size_t i = 0; i < depth; i++) {
+    fprintf(stderr, "   ");
+  }
   switch(node.kind) {
   case AST_NODE_KIND_LITERAL: {
-    log(L_INFO, "Literal kind: %s, value: "SV_FMT, literal_kind_name(node.literal.kind), sv_fmt_args(node.literal.value));
+    fprintf(stderr, "Literal kind: %s, value: "SV_FMT"\n", literal_kind_name(node.literal.kind), sv_fmt_args(node.literal.value));
   } break;
 
   case AST_NODE_KIND_SYMBOL: {
-    log(L_INFO, "value: "SV_FMT, sv_fmt_args(node.symbol.name));
+    fprintf(stderr, "value: "SV_FMT"\n", sv_fmt_args(node.symbol.name));
   } break;
 
   case AST_NODE_KIND_UNARY_OP: {
-    log(L_INFO, "Op: %s", unary_kind_name(node.unary_op.kind));
-    print_ast(*node.unary_op.expr);
+    fprintf(stderr, "Op: %s, Expr node:\n", unary_kind_name(node.unary_op.kind));
+    return print_ast_(*node.unary_op.expr, ++depth);
   } break;
 
   default: assertm(false, "Missing case of ast node of kind %d", node.kind);
   }
 
-  log(L_INFO, "--------------------");
+  fprintf(stderr, "--------------------\n");
 }
 
 
@@ -357,9 +363,10 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
   }
 }
 
-ast_node_list_t parse(arena_t arena[const static 1], const char path[const static 1], const char source[const static 1], const size_t source_length)
+ast_node_list_t parse(arena_t arena[const static 1], const char source[const static 1], const size_t source_length)
 {
   ast_node_list_t statements = {0};
+
   const sv_t input = sv_from_buf(source, source_length);
   lexer_t lexer = {
     .input = &input
@@ -373,6 +380,7 @@ ast_node_list_t parse(arena_t arena[const static 1], const char path[const stati
 
   lexer_t before = lexer;
   uint8_t parser_choice = 0;
+
   token_t token = peek_next_token(&lexer);
 
   while(token.kind != TOKEN_KIND_END) {
@@ -390,9 +398,16 @@ ast_node_list_t parse(arena_t arena[const static 1], const char path[const stati
         node = parse_expr(arena, &lexer, 0);
       } break;
       default: {
-        // + 1's as bol, line, cursor are all zero-indexed
-        bail("%s:%zu:%zu: Error: %s \"%c\"",
-             path, error_line + 1, error_cursor - error_bol + 1, error_msg, input.buf[error_cursor]);
+        da_push(arena, &statements, (ast_node_t){
+            .kind = AST_NODE_KIND_ERROR,
+            .err = {
+              .msg = error_msg,
+              .line = error_line,
+              .bol = error_bol,
+              .cursor = error_cursor
+            }
+          });
+        return statements;
       } break;
       }
 

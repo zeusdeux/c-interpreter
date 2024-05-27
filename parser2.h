@@ -71,6 +71,9 @@ typedef struct {
 
 #define has_err(node) (node).kind == AST_NODE_KIND_ERROR
 
-void print_ast(const ast_node_t node);
-ast_node_list_t parse(arena_t arena[const static 1], const char path[const static 1], const char source[const static 1], const size_t source_length);
+#define print_ast(node) print_ast_((node), 0);
+void print_ast_(const ast_node_t node, size_t depth);
+
+ast_node_list_t parse(arena_t arena[const static 1], const char source[const static 1], const size_t source_length);
+
 #endif // PARSER_H_
