@@ -56,18 +56,20 @@ static const char *unary_kind_name(const unary_op_kind_t kind)
   return unary_kind_to_str[kind];
 }
 
+#define indent(depth) do {                      \
+    for (size_t i = 0; i < (depth); i++) {      \
+      fprintf(stderr, "   ");                   \
+    }                                           \
+  } while(0)
+
 void print_ast_(const ast_node_t node, size_t depth)
 {
-  for (size_t i = 0; i < depth; i++) {
-    fprintf(stderr, "   ");
-  }
+  indent(depth);
   fprintf(stderr, "Node kind: %s\n", node_kind_name(node.kind));
-  for (size_t i = 0; i < depth; i++) {
-    fprintf(stderr, "   ");
-  }
+  indent(depth);
   switch(node.kind) {
   case AST_NODE_KIND_LITERAL: {
-    fprintf(stderr, "Literal kind: %s, value: "SV_FMT"\n", literal_kind_name(node.literal.kind), sv_fmt_args(node.literal.value));
+    fprintf(stderr, "Literal kind: %s, Value: "SV_FMT"\n", literal_kind_name(node.literal.kind), sv_fmt_args(node.literal.value));
   } break;
 
   case AST_NODE_KIND_SYMBOL: {
@@ -75,7 +77,9 @@ void print_ast_(const ast_node_t node, size_t depth)
   } break;
 
   case AST_NODE_KIND_UNARY_OP: {
-    fprintf(stderr, "Op: %s, Expr node:\n", unary_kind_name(node.unary_op.kind));
+    fprintf(stderr, "Op: %s\n", unary_kind_name(node.unary_op.kind));
+    indent(depth);
+    fprintf(stderr, "Expr:\n", unary_kind_name(node.unary_op.kind));
     return print_ast_(*node.unary_op.expr, ++depth);
   } break;
 
