@@ -56,6 +56,7 @@ static const char *token_to_str[] = {
   "TOKEN_KIND_SIGNED_INT",
   "TOKEN_KIND_UNSIGNED_INT",
   "TOKEN_KIND_FLOAT",
+  "TOKEN_KIND_DOUBLE",
   "TOKEN_KIND_UNKNOWN",
 };
 
@@ -101,6 +102,9 @@ token_t peek_next_token(const lexer_t lexer[const static 1])
 token_t get_next_token(lexer_t lexer[const static 1])
 {
   token_t tok = {0};
+
+  assertm(lexer->cursor - lexer->bol >= 0, "Expected: lexer cursor to be greater or equal to lexer.bol, "
+          "Recevied: (cursor = %zu, bol = %zu)", lexer->cursor, lexer->bol);
 
   if (lexer->input->length <= 0 || lexer->cursor >= lexer->input->length) {
     tok.kind = TOKEN_KIND_END;
@@ -276,11 +280,11 @@ token_t get_next_token(lexer_t lexer[const static 1])
             "TOKEN_KIND_UNKNOWN to have already been returned");
   }
 
-  // unsigned int
+  // signed int -> it's the default to align with how C behaves
   if (isdigit(lexer->input->buf[lexer->cursor])) {
     size_t length = 1;
 
-    tok.kind = TOKEN_KIND_UNSIGNED_INT;
+    tok.kind = TOKEN_KIND_SIGNED_INT;
     tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], length);
 
     while (isdigit(lexer->input->buf[lexer->cursor])) {

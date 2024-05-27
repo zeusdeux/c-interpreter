@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2024 Mudit Ameta
+ * Copyright (c) 2024 Mudit
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,6 @@ void *arena_realloc(arena_t *const ar, void *ptr, const size_t old_sz, const siz
 #define ar_dbg(...)
 #endif
 
-
 /* gg windows */
 #if defined(__unix__) || defined(__unix) || defined(__linux__) || defined(__APPLE__) || defined(__MACH__)
 
@@ -127,7 +126,7 @@ static inline size_t arena_round_up_to_page_size_(size_t sz)
   /* round up to SA_DEFAULT_PAGE_SIZE_IF_UNDEF if sysconf failed (-1) or returned 0 for some reason */
   page_size = page_size <= 0 ? SA_DEFAULT_PAGE_SIZE_IF_UNDEF : page_size;
 
-  /* round up requested size of a multiple of page_size */
+  /* round up requested size of a multiple of page_size + 1 page size bytes more */
   size_t rounded_up_sz = sz < (size_t)page_size ? (size_t)page_size : ((sz / (size_t)page_size) + 1) * (size_t)page_size;
 
   dbg("<< rounded up size %zu", rounded_up_sz);
@@ -428,7 +427,7 @@ void *arena_calloc(arena_t *const ar, const size_t count, const size_t sz)
  *
  * This function reallocates the memory pointed to by ptr from old_sz to new_sz. It does
  * so by allocating new_sz bytes ahead in the arena and then copying over old_sz bytes starting
- * from ptr to newly allocated memory.
+ * from ptr to newly allocated memory. If ptr is NULL, then this function behaves like arena_alloc().
  *
  * RETURN VALUES
  *
@@ -452,6 +451,20 @@ void *arena_realloc(arena_t *const ar, void *ptr, const size_t old_sz, const siz
   ar_dbg(">>", ar);
   dbg(">> ptr to realloc %p \t| old size %zu \t| new size %zu", ptr, old_sz, new_sz);
 
+  /* if ptr is null, act like a call to arena_alloc() just like realloc() does */
+  /* also, old_sz is ignored when ptr is NULL so it can be 0, 12312, whatever */
+  if (ptr == NULL) {
+    void *new_ptr = arena_alloc(ar, new_sz);
+
+    if (new_ptr == NULL) {
+      dbg("<< Could not allocate memory");
+      return NULL;
+    }
+
+    ar_dbg("<<", ar);
+    return new_ptr;
+  }
+
   /* bounds check on the incoming ptr + old size combo to make sure they are within arena */
   if (old_sz <= 0 || ptr < ar->arena || ((uintptr_t)ptr + old_sz) >= ((uintptr_t)ar->arena + ar->size)) {
     ar->err = arena_get_err_msg_(ARENA_EINVAL);
@@ -462,7 +475,7 @@ void *arena_realloc(arena_t *const ar, void *ptr, const size_t old_sz, const siz
 
   void *new_ptr = arena_alloc(ar, new_sz);
 
-  if (new_ptr == NULL){
+  if (new_ptr == NULL) {
     dbg("<< Could not allocate memory");
     return NULL;
   }

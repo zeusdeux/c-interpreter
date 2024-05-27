@@ -53,7 +53,8 @@
           abort())
 
 #define bail(...) do {                          \
-    log(L_ERROR, __VA_ARGS__);                  \
+    fprintf(stderr, __VA_ARGS__);               \
+    fprintf(stderr, "\n");                      \
     exit(EXIT_FAILURE);                         \
   } while(0)
 

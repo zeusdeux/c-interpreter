@@ -31,6 +31,7 @@
 #include <stddef.h>
 
 typedef struct file_content {
+  const char *path;
   const char *err;
   size_t size; /* not off_t as size is set to the return value of fread which is size_t. Also off_t is a POSIX thing and size_t is std C */
   void *contents;
@@ -102,7 +103,7 @@ FL_API fl_content_t fl_read_file(const char *restrict path, const char *restrict
 #endif
 
   /* init return type */
-  fl_content_t fc = {0};
+  fl_content_t fc = { .path = path };
 
   /* open file */
   FILE *f = fopen(path, mode);
