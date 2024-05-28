@@ -202,7 +202,7 @@ static ast_node_t parse_literal(arena_t arena[const static 1], lexer_t lexer[con
     return (ast_node_t) {
       .kind = AST_NODE_KIND_ERROR,
       .err = {
-        .msg = "Unexpected character instead of valid expression",
+        .msg = "Unexpected character instead of valid literal",
         .line = lexer->line,
         .bol = lexer->bol,
         .cursor = lexer->cursor,
@@ -233,7 +233,7 @@ static ast_node_t parse_symbol(arena_t arena[const static 1], lexer_t lexer[cons
     return (ast_node_t){
       .kind = AST_NODE_KIND_ERROR,
       .err = {
-        .msg = "Expected symbol but found nothing",
+        .msg = "Unexpected character instead of valid symbol",
         .line = lexer->line,
         .bol = lexer->bol,
         .cursor = lexer->cursor
@@ -284,7 +284,7 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
     return (ast_node_t){
       .kind = AST_NODE_KIND_ERROR,
       .err = {
-        .msg = "No unary operator found",
+        .msg = "Unexpected character instead of a unary op",
         .line = lexer->line,
         .bol = lexer->bol,
         .cursor = lexer->cursor
@@ -318,7 +318,7 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
   ast_node_t node = {0};
 
   size_t max_chars_consumed = 0;
-  char *error_msg = "Parsing expression error";
+  char *error_msg = "Unexpected error while parsing expression";
   size_t error_line = 0;
   size_t error_bol = 0;
   size_t error_cursor = 0;
@@ -377,7 +377,7 @@ ast_node_list_t parse(arena_t arena[const static 1], const char source[const sta
   };
 
   size_t max_chars_consumed = 0;
-  char *error_msg = "Parsing error";
+  char *error_msg = "Unexpected error while parsing";
   size_t error_line = 0;
   size_t error_bol = 0;
   size_t error_cursor = 0;
