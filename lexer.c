@@ -37,34 +37,40 @@ static const uint8_t type_qualifiers_lengths[] = {
   7, // _Atomic
 };
 
-static const char *token_to_str[] = {
-  "TOKEN_KIND_END",
-  "TOKEN_KIND_WS",
-  "TOKEN_KIND_NEWLINE",
-  "TOKEN_KIND_STAR",
-  "TOKEN_KIND_EQL",
-  "TOKEN_KIND_OPAREN",
-  "TOKEN_KIND_CPAREN",
-  "TOKEN_KIND_COMMA",
-  "TOKEN_KIND_SEMICOLON",
-  "TOKEN_KIND_AMPERSAND",
-  "TOKEN_KIND_TYPEDEF",
-  "TOKEN_KIND_STORAGE", // static, extern, auto, register and _Thread_local
-  "TOKEN_KIND_QUALIFIER", // const, restrict, volatile, _Atomic
-  "TOKEN_KIND_SYMBOL",
-  "TOKEN_KIND_STRING",
-  "TOKEN_KIND_SIGNED_INT",
-  "TOKEN_KIND_UNSIGNED_INT",
-  "TOKEN_KIND_FLOAT",
-  "TOKEN_KIND_DOUBLE",
-  "TOKEN_KIND_UNKNOWN",
-};
 
-_Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
-               "Some token kinds are missing their corresponding strings in token to string map");
-
-const char* token_kind_to_cstr(token_kind_t kind)
+const char* token_kind_name(token_kind_t kind)
 {
+  static const char *token_to_str[] = {
+    "TOKEN_KIND_END",
+    "TOKEN_KIND_WS",
+    "TOKEN_KIND_NEWLINE",
+    "TOKEN_KIND_OPAREN",
+    "TOKEN_KIND_CPAREN",
+    "TOKEN_KIND_COMMA",
+    "TOKEN_KIND_SEMICOLON",
+    "TOKEN_KIND_AMPERSAND",
+    "TOKEN_KIND_EQL",
+    "TOKEN_KIND_STAR",
+    "TOKEN_KIND_PLUS",
+    "TOKEN_KIND_MINUS",
+    "TOKEN_KIND_FSLASH",
+    "TOKEN_KIND_TYPEDEF",
+    "TOKEN_KIND_STORAGE", // static, extern, auto, register and _Thread_local
+    "TOKEN_KIND_QUALIFIER", // const, restrict, volatile, _Atomic
+    "TOKEN_KIND_SYMBOL",
+    "TOKEN_KIND_STRING",
+    "TOKEN_KIND_SIGNED_INT",
+    "TOKEN_KIND_UNSIGNED_INT",
+    "TOKEN_KIND_FLOAT",
+    "TOKEN_KIND_DOUBLE",
+    "TOKEN_KIND_UNKNOWN",
+  };
+
+  _Static_assert(zdx_arr_len(token_to_str) == TOKEN_KIND_COUNT,
+                 "Some token kinds are missing their corresponding strings in token to string map");
+
+  assertm(kind < TOKEN_KIND_COUNT, "Invalid token kind %d", kind);
+
   return token_to_str[kind];
 }
 
@@ -72,13 +78,13 @@ void print_token(const token_t tok)
 {
   if (tok.kind == TOKEN_KIND_END) {
     printf("kind = %s    \tlength = %zu \tval = %s\n",
-           token_to_str[tok.kind], tok.value.length, tok.value.buf);
+           token_kind_name(tok.kind), tok.value.length, tok.value.buf);
   } else if (sv_eq_cstr(tok.value, "\n")) {
     printf("kind = %s    \tlength = %zu \tval = '\\n'\n",
-           token_to_str[tok.kind], tok.value.length);
+           token_kind_name(tok.kind), tok.value.length);
   } else {
     printf("kind = %s    \tlength = %zu \tval = '"SV_FMT"'\n",
-           token_to_str[tok.kind], tok.value.length, sv_fmt_args(tok.value));
+           token_kind_name(tok.kind), tok.value.length, sv_fmt_args(tok.value));
   }
 }
 
@@ -169,6 +175,28 @@ token_t get_next_token(lexer_t lexer[const static 1])
 
   if (lexer->input->buf[lexer->cursor] == '&') {
     tok.kind = TOKEN_KIND_AMPERSAND;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
+
+    return tok;
+  }
+
+  if (lexer->input->buf[lexer->cursor] == '+') {
+    tok.kind = TOKEN_KIND_PLUS;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
+
+    return tok;
+  }
+
+  if (lexer->input->buf[lexer->cursor] == '-') {
+    tok.kind = TOKEN_KIND_MINUS;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
+
+    return tok;
+  }
+
+  // this == '/' and cursor+1 != '/' is as "//" are to be grouped as a single line comment starter
+  if (lexer->input->buf[lexer->cursor] == '/' && lexer->input->buf[lexer->cursor + 1] != '/') {
+    tok.kind = TOKEN_KIND_FSLASH;
     tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
 
     return tok;

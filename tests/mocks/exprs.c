@@ -1,11 +1,20 @@
 "multi word \"string\""
 100
 asd
-&omg
-*test
-****potato
-20)0
-// -100
+&deref_me
+test
+*one
+**potato
+************tomato
+&( *deref_me)
+(123)
+((123))
+(    "omg")
+((    "omg", 123, * test, & omg, **test, "some other '\"string\"'"))
+
+// // 20)0 should be an error
+-100
+-(-&(*bruh))
 // 100L
 // 100l
 // -100L
@@ -24,7 +33,8 @@ asd
 // -10.34
 // -10.34F
 // -10.34f
-// 100 + 10
+
+// 100 + 20
 // 100 - 10
 // 100 * 10
 // 100 / 10
