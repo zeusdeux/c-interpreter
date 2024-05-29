@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
   // parse
   ast_node_t program = parse(&arena, fc.contents, fc.size);
   check_program(program);
+  log(L_INFO, "------- Program -------\n");
   print_ast(program);
 
   // walk ast and interpret
