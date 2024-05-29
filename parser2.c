@@ -128,14 +128,13 @@ void print_ast_(const ast_node_t node, size_t depth)
   } break;
 
   case AST_NODE_KIND_LIST: {
-    fprintf(stderr, "Children: (length = %zu)\n", node.children->length);
-    if (node.children == NULL) {
-      indent(depth);
-      fprintf(stderr, "None\n");
-    } else {
+    if (node.children) {
+      fprintf(stderr, "Children: (length = %zu)\n", node.children->length);
       for (size_t i = 0; i < node.children->length; i++) {
         print_ast_(node.children->items[i], depth + 1);
       }
+    } else {
+      fprintf(stderr, "Children: None\n");
     }
   } break;
 
@@ -367,7 +366,6 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
       .expr = arena_alloc(arena, sizeof(expr))
     }
   };
-
   memcpy(node.unary_op.expr, &expr, sizeof(expr));
 
   return node;
@@ -390,28 +388,31 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   ast_node_list_t *expr_list = NULL;
-  ast_node_t expr = parse_expr(arena, lexer, 0);
 
-  while(!(has_err(expr))) {
-    if (expr_list == NULL) {
-      // allocated only if we have at least one expr
-      expr_list = arena_calloc(arena, 1, sizeof(*expr_list));
-      assertm(!arena->err, "Expected: expr list alloc to succeed, Received: %s", arena->err);
+  token_t next_token = peek_next_token(lexer);
+  if (next_token.kind != TOKEN_KIND_CPAREN) {
+    ast_node_t expr = parse_expr(arena, lexer, 0);
+
+    while(!(has_err(expr))) {
+      if (expr_list == NULL) {
+        // allocated only if we have at least one expr
+        expr_list = arena_calloc(arena, 1, sizeof(*expr_list));
+        assertm(!arena->err, "Expected: expr list alloc to succeed, Received: %s", arena->err);
+      }
+
+      add_node(arena, expr_list, expr);
+
+      zero_or_more(lexer, TOKEN_KIND_WS);
+
+      next_token = peek_next_token(lexer);
+      if (next_token.kind != TOKEN_KIND_CPAREN && !one_or_more(lexer, TOKEN_KIND_COMMA)) {
+        break;
+      }
+
+      zero_or_more(lexer, TOKEN_KIND_WS);
+
+      expr = parse_expr(arena, lexer, 0);
     }
-
-    add_node(arena, expr_list, expr);
-
-    zero_or_more(lexer, TOKEN_KIND_WS);
-
-    token_t token = peek_next_token(lexer);
-
-    if (token.kind != TOKEN_KIND_CPAREN && !one_or_more(lexer, TOKEN_KIND_COMMA)) {
-      break;
-    }
-
-    zero_or_more(lexer, TOKEN_KIND_WS);
-
-    expr = parse_expr(arena, lexer, 0);
   }
 
   zero_or_more(lexer, TOKEN_KIND_WS);
@@ -424,8 +425,8 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
       .err = {
         .msg = "Unexpected character instead of an closing paren",
         .line = lexer->line,
+        .cursor = lexer->cursor,
         .bol = lexer->bol,
-        .cursor = lexer->cursor
       }
     };
   }

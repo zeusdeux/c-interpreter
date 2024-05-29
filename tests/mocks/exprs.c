@@ -1,20 +1,23 @@
-"multi word \"string\""
-100
-asd
-&deref_me
-test
-*one
-**potato
-************tomato
-&( *deref_me)
+// "multi word \"string\""
+// 100
+// -100
+// asd
+// &deref_me
+// test
+// *one
+// **potato
+// *****tomato
+// &( *deref_me)
+()
+-()
 (123)
 ((123))
 (    "omg")
 ((    "omg", 123, * test, & omg, **test, "some other '\"string\"'"))
+-(-&(*bruh))
+// 100 + 200 + (20 + 20)
 
 // // 20)0 should be an error
--100
--(-&(*bruh))
 // 100L
 // 100l
 // -100L
@@ -34,7 +37,8 @@ test
 // -10.34F
 // -10.34f
 
-// 100 + 20
+
+// 100 + 10
 // 100 - 10
 // 100 * 10
 // 100 / 10
