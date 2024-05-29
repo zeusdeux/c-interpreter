@@ -370,7 +370,7 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
     .kind = AST_NODE_KIND_UNARY_OP,
     .unary_op = {
       .kind = get_unary_op_kind(unary_op),
-      .expr = arena_alloc(arena, sizeof(expr))
+      .expr = arena_calloc(arena, 1, sizeof(expr))
     }
   };
   memcpy(node.unary_op.expr, &expr, sizeof(expr));
@@ -396,7 +396,6 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
 
   ast_node_list_t *expr_list = NULL;
 
-  token_t next_token = peek_next_token(lexer);
   // this check is to parse () with no expr in it as parse_expr
   // doesn't have a case for parse_empty() or such (epsilon in the grammar)
   if (!is_next(lexer, TOKEN_KIND_CPAREN)) {

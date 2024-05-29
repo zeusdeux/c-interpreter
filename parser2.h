@@ -96,7 +96,7 @@ struct ast_node_list_t {
 
 #define NODE_ASSERT assertm
 #define NODE_REALLOC arena_realloc
-#define NODE_LIST_MIN_CAP 4
+#define NODE_LIST_MIN_CAP 1
 
 #define add_node(arena, arr, ...) add_node_(arena,                         \
                                             arr,                           \
