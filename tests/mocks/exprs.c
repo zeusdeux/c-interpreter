@@ -1,19 +1,19 @@
-// "multi word \"string\""
-// 100
-// -100
-// asd
-// &deref_me
-// test
-// *one
-// **potato
-// *****tomato
-// &( *deref_me)
+"multi word \"string\""
+100
+-100
+asd
+&deref_me
+test
+*one
+**potato
+*****tomato
+&( *deref_me)
 ()
 -()
 (123)
 ((123))
-(    "omg")
-((    "omg", 123, * test, & omg, **test, "some other '\"string\"'"))
+(((    "omg", 900, asd)))
+(    "omg", 123, * test, & omg, **test, "some other '\"string\"'")
 -(-&(*bruh))
 // 100 + 200 + (20 + 20)
 

@@ -150,7 +150,7 @@ void print_ast_(const ast_node_t node, size_t depth)
 // ------------------------------------ COMBINATORS ------------------------------------
 
 // ? op
-bool zero_or_one(lexer_t lexer[const static 1], token_kind_t kind, sv_t *const binding)
+static bool zero_or_one(lexer_t lexer[const static 1], token_kind_t kind, sv_t *const binding)
 {
   token_t tok = peek_next_token(lexer);
 
@@ -171,7 +171,7 @@ bool zero_or_one(lexer_t lexer[const static 1], token_kind_t kind, sv_t *const b
 }
 
 // * op
-bool zero_or_more(lexer_t *const lexer, token_kind_t kind)
+static bool zero_or_more(lexer_t *const lexer, token_kind_t kind)
 {
   token_t tok = peek_next_token(lexer);
 
@@ -184,7 +184,7 @@ bool zero_or_more(lexer_t *const lexer, token_kind_t kind)
 }
 
 // + op
-bool one_or_more(lexer_t *const lexer, token_kind_t kind)
+static bool one_or_more(lexer_t *const lexer, token_kind_t kind)
 {
   token_t tok = peek_next_token(lexer);
 
@@ -197,7 +197,7 @@ bool one_or_more(lexer_t *const lexer, token_kind_t kind)
   return zero_or_more(lexer, kind);
 }
 
-bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
+static bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
 {
   token_t tok = peek_next_token(lexer);
 
@@ -213,6 +213,13 @@ bool exactly_one(lexer_t *const lexer, token_kind_t kind, sv_t *binding)
   }
 
   return true;
+}
+
+bool is_next(const lexer_t *const lexer, token_kind_t kind)
+{
+  token_t token = peek_next_token(lexer);
+
+  return token.kind == kind;
 }
 
 
@@ -390,7 +397,9 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
   ast_node_list_t *expr_list = NULL;
 
   token_t next_token = peek_next_token(lexer);
-  if (next_token.kind != TOKEN_KIND_CPAREN) {
+  // this check is to parse () with no expr in it as parse_expr
+  // doesn't have a case for parse_empty() or such (epsilon in the grammar)
+  if (!is_next(lexer, TOKEN_KIND_CPAREN)) {
     ast_node_t expr = parse_expr(arena, lexer, 0);
 
     while(!(has_err(expr))) {
@@ -404,8 +413,7 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
 
       zero_or_more(lexer, TOKEN_KIND_WS);
 
-      next_token = peek_next_token(lexer);
-      if (next_token.kind != TOKEN_KIND_CPAREN && !one_or_more(lexer, TOKEN_KIND_COMMA)) {
+      if (!is_next(lexer, TOKEN_KIND_CPAREN) && !one_or_more(lexer, TOKEN_KIND_COMMA)) {
         break;
       }
 

@@ -88,14 +88,11 @@ struct ast_node_list_t {
 };
 
 #define has_err(node) (node).kind == AST_NODE_KIND_ERROR
-#define check_program(program) do {                             \
-    assertm((program).kind == AST_NODE_KIND_LIST,               \
-            "Expected: Program node, Received: %s (%d)",        \
-            node_kind_name((program).kind), (program).kind);    \
-    assertm((program).children != NULL,                         \
-            "Expected: Program has statements, Received: %p",   \
-            (void *)(program).children);                        \
-  } while(0)
+#define check_program(program)                                  \
+  assertm((program).kind == AST_NODE_KIND_LIST,                 \
+          "Expected: Program node, Received: %s (%d)",          \
+          node_kind_name((program).kind), (program).kind)
+
 
 #define NODE_ASSERT assertm
 #define NODE_REALLOC arena_realloc
