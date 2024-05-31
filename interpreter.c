@@ -15,7 +15,7 @@
 #include "./zdx_file.h"
 
 
-// gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c parser.c && ./interpreter
+// gcc -O2 -g -std=c17 -Wall -Wdeprecated -Wpedantic -Wextra -o interpreter interpreter.c lexer.c parser2.c && ./interpreter
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
