@@ -92,55 +92,55 @@ void print_ast_(const ast_node_t node, size_t depth)
   fprintf(stderr, "Node kind: %s\n", node_kind_name(node.kind));
   indent(depth);
   switch(node.kind) {
-  case AST_NODE_KIND_ERROR: {
-    fprintf(stderr, "message: %s\n", node.err.msg);
-    indent(depth);
-    fprintf(stderr, "line: %zu\n", node.err.line);
-    indent(depth);
-    fprintf(stderr, "cursor: %zu\n", node.err.cursor);
-    indent(depth);
-    fprintf(stderr, "bol: %zu\n", node.err.bol);
-  } break;
+    case AST_NODE_KIND_ERROR: {
+      fprintf(stderr, "message: %s\n", node.err.msg);
+      indent(depth);
+      fprintf(stderr, "line: %zu\n", node.err.line);
+      indent(depth);
+      fprintf(stderr, "cursor: %zu\n", node.err.cursor);
+      indent(depth);
+      fprintf(stderr, "bol: %zu\n", node.err.bol);
+    } break;
 
-  case AST_NODE_KIND_LITERAL: {
-    fprintf(stderr, "Literal kind: %s\n", literal_kind_name(node.literal.kind));
-    indent(depth);
-    fprintf(stderr, "Value: "SV_FMT"\n", sv_fmt_args(node.literal.value));
-  } break;
+    case AST_NODE_KIND_LITERAL: {
+      fprintf(stderr, "Literal kind: %s\n", literal_kind_name(node.literal.kind));
+      indent(depth);
+      fprintf(stderr, "Value: "SV_FMT"\n", sv_fmt_args(node.literal.value));
+    } break;
 
-  case AST_NODE_KIND_SYMBOL: {
-    fprintf(stderr, "Value: "SV_FMT"\n", sv_fmt_args(node.symbol.name));
-  } break;
+    case AST_NODE_KIND_SYMBOL: {
+      fprintf(stderr, "Value: "SV_FMT"\n", sv_fmt_args(node.symbol.name));
+    } break;
 
-  case AST_NODE_KIND_UNARY_OP: {
-    fprintf(stderr, "Op: %s\n", unary_kind_name(node.unary_op.kind));
-    indent(depth);
-    fprintf(stderr, "Expr:\n");
-    print_ast_(*node.unary_op.expr, depth + 1);
-  } break;
+    case AST_NODE_KIND_UNARY_OP: {
+      fprintf(stderr, "Op: %s\n", unary_kind_name(node.unary_op.kind));
+      indent(depth);
+      fprintf(stderr, "Expr:\n");
+      print_ast_(*node.unary_op.expr, depth + 1);
+    } break;
 
-  case AST_NODE_KIND_BINARY_OP: {
-    fprintf(stderr, "Op: %s\n", binary_kind_name(node.binary_op.kind));
-    indent(depth);
-    fprintf(stderr, "Left:\n");
-    print_ast_(*node.binary_op.left, depth + 1);
-    indent(depth);
-    fprintf(stderr, "Right:\n");
-    print_ast_(*node.binary_op.right, depth + 1);
-  } break;
+    case AST_NODE_KIND_BINARY_OP: {
+      fprintf(stderr, "Op: %s\n", binary_kind_name(node.binary_op.kind));
+      indent(depth);
+      fprintf(stderr, "Left:\n");
+      print_ast_(*node.binary_op.left, depth + 1);
+      indent(depth);
+      fprintf(stderr, "Right:\n");
+      print_ast_(*node.binary_op.right, depth + 1);
+    } break;
 
-  case AST_NODE_KIND_LIST: {
-    if (node.children) {
-      fprintf(stderr, "Children: (length = %zu)\n", node.children->length);
-      for (size_t i = 0; i < node.children->length; i++) {
-        print_ast_(node.children->items[i], depth + 1);
+    case AST_NODE_KIND_LIST: {
+      if (node.children) {
+        fprintf(stderr, "Children: (length = %zu)\n", node.children->length);
+        for (size_t i = 0; i < node.children->length; i++) {
+          print_ast_(node.children->items[i], depth + 1);
+        }
+      } else {
+        fprintf(stderr, "Children: None\n");
       }
-    } else {
-      fprintf(stderr, "Children: None\n");
-    }
-  } break;
+    } break;
 
-  default: assertm(false, "Missing case of ast node of kind %d", node.kind);
+    default: assertm(false, "Missing case of ast node of kind %d", node.kind);
   }
 
   if (depth == 0) {
@@ -232,13 +232,13 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
 
 static literal_kind_t get_literal_kind(const token_kind_t token_kind)
 {
-  switch(token_kind){
-  case TOKEN_KIND_SIGNED_INT:
-  case TOKEN_KIND_UNSIGNED_INT:
-  case TOKEN_KIND_FLOAT:
-  case TOKEN_KIND_DOUBLE: return LITERAL_KIND_NUMBER;
-  case TOKEN_KIND_STRING: return LITERAL_KIND_STRING;
-  default: return LITERAL_KIND_UNKNOWN;
+  switch(token_kind) {
+    case TOKEN_KIND_SIGNED_INT:
+    case TOKEN_KIND_UNSIGNED_INT:
+    case TOKEN_KIND_FLOAT:
+    case TOKEN_KIND_DOUBLE: return LITERAL_KIND_NUMBER;
+    case TOKEN_KIND_STRING: return LITERAL_KIND_STRING;
+    default: return LITERAL_KIND_UNKNOWN;
   }
 }
 
@@ -320,12 +320,12 @@ static ast_node_t parse_symbol(arena_t arena[const static 1], lexer_t lexer[cons
 static inline unary_op_kind_t get_unary_op_kind(const token_kind_t token_kind)
 {
   switch(token_kind) {
-  case TOKEN_KIND_STAR: return UNARY_OP_DEREF;
-  case TOKEN_KIND_AMPERSAND: return UNARY_OP_ADDR_OF;
-  case TOKEN_KIND_MINUS: return UNARY_OP_NEGATE;
-  case TOKEN_KIND_PLUS: return UNARY_OP_POSITIVE;
-  case TOKEN_KIND_EXCLAMATION: return UNARY_OP_NOT;
-  default: return UNARY_OP_UNKNOWN;
+    case TOKEN_KIND_STAR: return UNARY_OP_DEREF;
+    case TOKEN_KIND_AMPERSAND: return UNARY_OP_ADDR_OF;
+    case TOKEN_KIND_MINUS: return UNARY_OP_NEGATE;
+    case TOKEN_KIND_PLUS: return UNARY_OP_POSITIVE;
+    case TOKEN_KIND_EXCLAMATION: return UNARY_OP_NOT;
+    default: return UNARY_OP_UNKNOWN;
   }
 }
 
@@ -567,22 +567,22 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
 
   while(true) {
     switch(parser_choice) {
-    case 0: {
-      node = pratt_parse_binary_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
-    } break;
-    case 1: {
-      node = parse_unary_op(arena, lexer);
-    } break;
-    case 2: {
-      node = parse_parenthesized_expr(arena, lexer);
-    } break;
-    case 3: {
-      node = parse_symbol(arena, lexer);
-    } break;
-    case 4: {
-      node = parse_literal(arena, lexer);
-    } break;
-    default: return (ast_node_t){
+      case 0: {
+        node = pratt_parse_binary_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
+      } break;
+      case 1: {
+        node = parse_unary_op(arena, lexer);
+      } break;
+      case 2: {
+        node = parse_parenthesized_expr(arena, lexer);
+      } break;
+      case 3: {
+        node = parse_symbol(arena, lexer);
+      } break;
+      case 4: {
+        node = parse_literal(arena, lexer);
+      } break;
+      default: return (ast_node_t){
         .kind = AST_NODE_KIND_ERROR,
         .err = {
           .msg = error_msg,
@@ -618,15 +618,15 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
 
 ast_node_t parse(arena_t arena[const static 1], const char source[const static 1], const size_t source_length)
 {
-  ast_node_t program = {
-    .kind = AST_NODE_KIND_LIST,
-  };
-  ast_node_list_t *statements = NULL;
-
   const sv_t input = sv_from_buf(source, source_length);
   lexer_t lexer = {
     .input = &input
   };
+
+  ast_node_t program = {
+    .kind = AST_NODE_KIND_LIST,
+  };
+  ast_node_list_t *statements = NULL;
 
   size_t max_chars_consumed = 0;
   char *error_msg = "Unexpected error while parsing";
@@ -658,21 +658,21 @@ ast_node_t parse(arena_t arena[const static 1], const char source[const static 1
       }
 
       switch(parser_choice) {
-      case 0: {
-        node = parse_expr(arena, &lexer, 0);
-      } break;
-      default: {
-        add_node(arena, statements, (ast_node_t){
-            .kind = AST_NODE_KIND_ERROR,
-            .err = {
-              .msg = error_msg,
-              .line = error_line,
-              .bol = error_bol,
-              .cursor = error_cursor
-            }
-          });
-        return program;
-      } break;
+        case 0: {
+          node = parse_expr(arena, &lexer, 0);
+        } break;
+        default: {
+          add_node(arena, statements, (ast_node_t){
+              .kind = AST_NODE_KIND_ERROR,
+              .err = {
+                .msg = error_msg,
+                .line = error_line,
+                .bol = error_bol,
+                .cursor = error_cursor
+              }
+            });
+          return program;
+        } break;
       }
 
       if (has_err(node)) {

@@ -144,29 +144,29 @@ void print_node(node_t node, size_t depth)
   fprintf(stderr, "Node kind: %s\n", node_kind_to_str[node.kind]);
 
   switch(node.kind) {
-  case NODE_KIND_ERROR: {
-    indent(depth);
-    fprintf(stderr, "Message: %s\n", node.err.msg);
-  } break;
-  case NODE_KIND_LITERAL: {
-    indent(depth);
-    fprintf(stderr, "Literal kind: %s\n", literal_kind_to_str[node.literal.kind]);
-    indent(depth);
-    fprintf(stderr, "Literal value: "SV_FMT"\n", sv_fmt_args(node.literal.value));
-  } break;
-  case NODE_KIND_BINOP: {
-    indent(depth);
-    fprintf(stderr, "Binop kind: %s\n", binop_kind_to_str[node.binop.kind]);
-    indent(depth);
-    fprintf(stderr, "Binop left: \n");
-    print_node(*node.binop.left, depth + 1);
-    indent(depth);
-    fprintf(stderr, "Binop right: \n");
-    print_node(*node.binop.right, depth + 1);
-  } break;
-  default: {
-    assertm(false, "Unrecognized node kind %d", node.kind);
-  } break;
+    case NODE_KIND_ERROR: {
+      indent(depth);
+      fprintf(stderr, "Message: %s\n", node.err.msg);
+    } break;
+    case NODE_KIND_LITERAL: {
+      indent(depth);
+      fprintf(stderr, "Literal kind: %s\n", literal_kind_to_str[node.literal.kind]);
+      indent(depth);
+      fprintf(stderr, "Literal value: "SV_FMT"\n", sv_fmt_args(node.literal.value));
+    } break;
+    case NODE_KIND_BINOP: {
+      indent(depth);
+      fprintf(stderr, "Binop kind: %s\n", binop_kind_to_str[node.binop.kind]);
+      indent(depth);
+      fprintf(stderr, "Binop left: \n");
+      print_node(*node.binop.left, depth + 1);
+      indent(depth);
+      fprintf(stderr, "Binop right: \n");
+      print_node(*node.binop.right, depth + 1);
+    } break;
+    default: {
+      assertm(false, "Unrecognized node kind %d", node.kind);
+    } break;
   }
 }
 
@@ -421,23 +421,23 @@ node_t parse_expr(lexer_t lexer[const static 1], uint8_t parser_choice)
 
   while(true) {
     switch(parser_choice) {
-    case 0: {
-      node = pratt_parser_expr(lexer, 0, parser_choice); // lowest precendence is 0
-    } break;
-    case 1: {
-      node = parse_parenthesized_expr(lexer);
-    } break;
-    case 2: {
-      node = parse_literal(lexer);
-    } break;
-    default: {
-      return (node_t){
-        .kind = NODE_KIND_ERROR,
-        .err = {
-          .msg = "Cannot parse as expr"
-        }
-      };
-    }
+      case 0: {
+        node = pratt_parser_expr(lexer, 0, parser_choice); // lowest precendence is 0
+      } break;
+      case 1: {
+        node = parse_parenthesized_expr(lexer);
+      } break;
+      case 2: {
+        node = parse_literal(lexer);
+      } break;
+      default: {
+        return (node_t){
+          .kind = NODE_KIND_ERROR,
+          .err = {
+            .msg = "Cannot parse as expr"
+          }
+        };
+      }
     }
 
     if (node.kind == NODE_KIND_ERROR) {
