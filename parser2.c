@@ -366,7 +366,9 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
 
   zero_or_more(lexer, TOKEN_KIND_WS);
 
-  ast_node_t expr = parse_expr(arena, lexer, 0);
+  // only allowed exprs after a unary op are non-binary ops
+  // so we use 1 as the parser choice as that's after pratt_parse_binary_op() in parse_expr()
+  ast_node_t expr = parse_expr(arena, lexer, 1);
 
   if (has_err(expr)) {
     return expr;
@@ -569,10 +571,10 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
       node = pratt_parse_binary_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
     } break;
     case 1: {
-      node = parse_parenthesized_expr(arena, lexer);
+      node = parse_unary_op(arena, lexer);
     } break;
     case 2: {
-      node = parse_unary_op(arena, lexer);
+      node = parse_parenthesized_expr(arena, lexer);
     } break;
     case 3: {
       node = parse_symbol(arena, lexer);

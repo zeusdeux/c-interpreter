@@ -40,10 +40,9 @@ test
 100 - -10
 100 - +10
 100 - !(s + 200 * 100)
-// TODO(mudit): The one below generates an incorrect AST. FIX IT
-// It parses as 100 - !(s + (200 * 100) instead of
-//              100 - !s + (200 * 100)
-100 - !s + 200 * 100
+// 60
+100 + 20 * 200  / 100 - 80
+100 + !s * 200  / 100 - 80
 
 // // 20)0 should be an error
 // 100L
