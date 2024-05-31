@@ -30,7 +30,9 @@ typedef enum {
   UNARY_OP_UNKNOWN,
   UNARY_OP_ADDR_OF,
   UNARY_OP_DEREF,
+  UNARY_OP_NOT,
   UNARY_OP_NEGATE,
+  UNARY_OP_POSITIVE,
   UNARY_OP_COUNT,
 } unary_op_kind_t;
 

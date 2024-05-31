@@ -49,6 +49,7 @@ const char* token_kind_name(token_kind_t kind)
     "TOKEN_KIND_COMMA",
     "TOKEN_KIND_SEMICOLON",
     "TOKEN_KIND_AMPERSAND",
+    "TOKEN_KIND_EXCLAMATION",
     "TOKEN_KIND_EQL",
     "TOKEN_KIND_STAR",
     "TOKEN_KIND_PLUS",
@@ -90,10 +91,7 @@ void print_token(const token_t tok)
 
 void reset_lexer(lexer_t dst[const static 1], const lexer_t src)
 {
-  dst->cursor = src.cursor;
-  dst->bol = src.bol;
-  dst->line = src.line;
-  dst->input = src.input;
+  *dst = src;
 }
 
 
@@ -175,6 +173,13 @@ token_t get_next_token(lexer_t lexer[const static 1])
 
   if (lexer->input->buf[lexer->cursor] == '&') {
     tok.kind = TOKEN_KIND_AMPERSAND;
+    tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
+
+    return tok;
+  }
+
+  if (lexer->input->buf[lexer->cursor] == '!') {
+    tok.kind = TOKEN_KIND_EXCLAMATION;
     tok.value = sv_from_buf(&lexer->input->buf[lexer->cursor++], 1);
 
     return tok;

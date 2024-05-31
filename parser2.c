@@ -48,7 +48,9 @@ static const char *unary_kind_name(const unary_op_kind_t kind)
     "UNARY_OP_UNKNOWN",
     "UNARY_OP_ADDR_OF",
     "UNARY_OP_DEREF",
-    "UNARY_OP_NEGATE"
+    "UNARY_OP_NOT",
+    "UNARY_OP_NEGATE",
+    "UNARY_OP_POSITIVE",
   };
 
   _Static_assert(zdx_arr_len(unary_kind_to_str) == UNARY_OP_COUNT,
@@ -321,6 +323,8 @@ static inline unary_op_kind_t get_unary_op_kind(const token_kind_t token_kind)
   case TOKEN_KIND_STAR: return UNARY_OP_DEREF;
   case TOKEN_KIND_AMPERSAND: return UNARY_OP_ADDR_OF;
   case TOKEN_KIND_MINUS: return UNARY_OP_NEGATE;
+  case TOKEN_KIND_PLUS: return UNARY_OP_POSITIVE;
+  case TOKEN_KIND_EXCLAMATION: return UNARY_OP_NOT;
   default: return UNARY_OP_UNKNOWN;
   }
 }
@@ -333,6 +337,8 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
     TOKEN_KIND_STAR,
     TOKEN_KIND_AMPERSAND,
     TOKEN_KIND_MINUS,
+    TOKEN_KIND_PLUS,
+    TOKEN_KIND_EXCLAMATION,
   };
   token_kind_t unary_op = {0};
   bool found_unary_op = false;
