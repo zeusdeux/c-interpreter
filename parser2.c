@@ -268,7 +268,7 @@ static ast_node_t parse_literal(arena_t arena[const static 1], lexer_t lexer[con
     return (ast_node_t) {
       .kind = AST_NODE_KIND_ERROR,
       .err = {
-        .msg = "Unexpected character instead of valid literal",
+        .msg = "Unexpected character while parsing literal",
         .line = lexer->line,
         .bol = lexer->bol,
         .cursor = lexer->cursor,

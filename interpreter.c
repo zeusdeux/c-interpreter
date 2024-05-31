@@ -39,8 +39,19 @@ int main(int argc, char *argv[])
   // parse
   ast_node_t program = parse(&arena, fc.contents, fc.size);
   check_program(program);
-  log(L_INFO, "------- Program -------\n");
-  print_ast(program);
+  ast_node_t last_node = program.children->items[program.children->length - 1];
+
+  // the parser stops collection statements when an error occurs and
+  // therefore, if there was a parse error, it'll be the last node
+  // in the program statement list aka program.children
+  if (has_err(last_node)) {
+    char char_at_cursor[2] = {((char *)fc.contents)[last_node.err.cursor], 0};
+    fprintf(stderr, "%s:%zu:%zu: Error: %s -> '%s'\n",
+            fc.path, last_node.err.line + 1, last_node.err.cursor - last_node.err.bol + 1, last_node.err.msg,
+            char_at_cursor[0] == '\n' ? "\\n" : char_at_cursor);
+  } else {
+    print_ast(program);
+  }
 
   // walk ast and interpret
   // TODO: interpret(program);
