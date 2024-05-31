@@ -422,8 +422,6 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
     }
   }
 
-  zero_or_more(lexer, TOKEN_KIND_WS);
-
   /* while (one_or_more(lexer, TOKEN_KIND_WS) || one_or_more(lexer, TOKEN_KIND_NEWLINE)) {} */
 
   if (!exactly_one(lexer, TOKEN_KIND_CPAREN, NULL)){
@@ -446,18 +444,106 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
   return node;
 }
 
-static binary_op_kind_t get_binary_op_kind(const token_kind_t token_kind)
+typedef struct {
+  size_t left;
+  size_t right;
+  const char *err;
+} precedence_t;
+
+
+static inline precedence_t get_infix_precedence(token_t op)
 {
-  switch(token_kind){
-  case TOKEN_KIND_PLUS: return BINARY_OP_ADD;
-  case TOKEN_KIND_MINUS: return BINARY_OP_SUB;
-  case TOKEN_KIND_STAR: return BINARY_OP_MULT;
-  case TOKEN_KIND_FSLASH: return BINARY_OP_DIV;
-  default: return BINARY_OP_UNKNOWN;
+  if (op.kind == TOKEN_KIND_PLUS || op.kind == TOKEN_KIND_MINUS) {
+    return (precedence_t){ .left = 1, .right = 2 };
   }
+
+  if (op.kind == TOKEN_KIND_STAR || op.kind == TOKEN_KIND_FSLASH) {
+    return (precedence_t){ .left = 3, .right = 4 };
+  }
+
+  return (precedence_t){ .err = "No precedence value for op" };
 }
 
+ast_node_t pratt_parse_binary_op(arena_t arena[const static 1], lexer_t lexer[const static 1], uint8_t min_precedence, uint8_t parser_choice)
+{
+  ast_node_t lhs = parse_expr(arena, lexer, parser_choice + 1);
 
+  if (has_err(lhs)) {
+    return lhs;
+  }
+
+  for(;;) {
+    zero_or_more(lexer, TOKEN_KIND_WS);
+
+    token_t op = peek_next_token(lexer);
+    binary_op_kind_t binop_kind = {0};
+
+
+    if (op.kind == TOKEN_KIND_PLUS) {
+      binop_kind = BINARY_OP_ADD;
+    }
+    else if (op.kind == TOKEN_KIND_MINUS) {
+      binop_kind = BINARY_OP_SUB;
+    }
+    else if (op.kind == TOKEN_KIND_STAR) {
+      binop_kind = BINARY_OP_MULT;
+    }
+    else if (op.kind == TOKEN_KIND_FSLASH) {
+      binop_kind = BINARY_OP_DIV;
+    }
+    else {
+      break;
+    }
+
+    precedence_t p = get_infix_precedence(op);
+
+    if (p.err) {
+      ast_node_t error = (ast_node_t){
+        .kind = AST_NODE_KIND_ERROR,
+        .err = {
+          .msg = (char *)p.err
+        }
+      };
+
+      return error;
+    }
+
+    if (p.left < min_precedence) {
+      break;
+    }
+
+    get_next_token(lexer); // consume op
+
+    zero_or_more(lexer, TOKEN_KIND_WS);
+
+    // consume following exprs with greater precendence until same or
+    // lower precendence op is hit. Try it with a + b * c * d + e in
+    // your head
+    ast_node_t rhs = pratt_parse_binary_op(arena, lexer, p.right, parser_choice);
+
+    if (has_err(rhs)) {
+      return rhs;
+    }
+
+    ast_node_t *p_lhs = arena_calloc(arena, 1, sizeof(*p_lhs));
+    memcpy(p_lhs, &lhs, sizeof(lhs));
+    ast_node_t *p_rhs = arena_calloc(arena, 1, sizeof(*p_rhs));
+    memcpy(p_rhs, &rhs, sizeof(rhs));
+
+    ast_node_t binop_node = {
+      .kind = AST_NODE_KIND_BINARY_OP,
+      .binary_op = {
+        .kind = binop_kind,
+        .left = p_lhs,
+        .right = p_rhs
+      }
+    };
+
+    lhs = binop_node;
+  }
+
+  return lhs;
+}
 
 static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const static 1], size_t parser_choice)
 {
@@ -474,15 +560,18 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
   while(true) {
     switch(parser_choice) {
     case 0: {
-      node = parse_parenthesized_expr(arena, lexer);
+      node = pratt_parse_binary_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
     } break;
     case 1: {
-      node = parse_unary_op(arena, lexer);
+      node = parse_parenthesized_expr(arena, lexer);
     } break;
     case 2: {
-      node = parse_symbol(arena, lexer);
+      node = parse_unary_op(arena, lexer);
     } break;
     case 3: {
+      node = parse_symbol(arena, lexer);
+    } break;
+    case 4: {
       node = parse_literal(arena, lexer);
     } break;
     default: return (ast_node_t){
@@ -512,9 +601,11 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
 
     }
     else {
-      return node;
+      break;
     }
   }
+
+  return node;
 }
 
 ast_node_t parse(arena_t arena[const static 1], const char source[const static 1], const size_t source_length)
