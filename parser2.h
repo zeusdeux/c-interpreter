@@ -42,6 +42,7 @@ typedef enum {
   BINARY_OP_SUB,
   BINARY_OP_MULT,
   BINARY_OP_DIV,
+  BINARY_OP_ASSIGNMENT,
   BINARY_OP_EXPO,
   BINARY_OP_COUNT,
 } binary_op_kind_t;

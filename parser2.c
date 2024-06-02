@@ -69,6 +69,7 @@ static const char *binary_kind_name(const binary_op_kind_t kind)
     "BINARY_OP_SUB",
     "BINARY_OP_MULT",
     "BINARY_OP_DIV",
+    "BINARY_OP_ASSIGNMENT",
     "BINARY_OP_EXPO",
   };
 
@@ -367,7 +368,7 @@ static ast_node_t parse_unary_op(arena_t arena[const static 1], lexer_t lexer[co
   zero_or_more(lexer, TOKEN_KIND_WS);
 
   // only allowed exprs after a unary op are non-binary ops
-  // so we use 1 as the parser choice as that's after pratt_parse_binary_op() in parse_expr()
+  // so we use 1 as the parser choice as that's after pratt_parse_binary_infix_op() in parse_expr()
   ast_node_t expr = parse_expr(arena, lexer, 1);
 
   if (has_err(expr)) {
@@ -461,18 +462,21 @@ typedef struct {
 
 static inline precedence_t get_infix_precedence(token_t op)
 {
+  if (op.kind == TOKEN_KIND_EQL) {
+    return (precedence_t){ .left = 2, .right = 1 }; // = is right associative
+  }
   if (op.kind == TOKEN_KIND_PLUS || op.kind == TOKEN_KIND_MINUS) {
-    return (precedence_t){ .left = 1, .right = 2 };
+    return (precedence_t){ .left = 3, .right = 4 };
   }
 
   if (op.kind == TOKEN_KIND_STAR || op.kind == TOKEN_KIND_FSLASH) {
-    return (precedence_t){ .left = 3, .right = 4 };
+    return (precedence_t){ .left = 5, .right = 6 };
   }
 
   return (precedence_t){ .err = "No precedence value for op" };
 }
 
-ast_node_t pratt_parse_binary_op(arena_t arena[const static 1], lexer_t lexer[const static 1], uint8_t min_precedence, uint8_t parser_choice)
+ast_node_t pratt_parse_binary_infix_op(arena_t arena[const static 1], lexer_t lexer[const static 1], uint8_t min_precedence, uint8_t parser_choice)
 {
   ast_node_t lhs = parse_expr(arena, lexer, parser_choice + 1);
 
@@ -498,6 +502,9 @@ ast_node_t pratt_parse_binary_op(arena_t arena[const static 1], lexer_t lexer[co
     }
     else if (op.kind == TOKEN_KIND_FSLASH) {
       binop_kind = BINARY_OP_DIV;
+    }
+    else if (op.kind == TOKEN_KIND_EQL) {
+      binop_kind = BINARY_OP_ASSIGNMENT;
     }
     else {
       break;
@@ -527,7 +534,7 @@ ast_node_t pratt_parse_binary_op(arena_t arena[const static 1], lexer_t lexer[co
     // consume following exprs with greater precendence until same or
     // lower precendence op is hit. Try it with a + b * c * d + e in
     // your head
-    ast_node_t rhs = pratt_parse_binary_op(arena, lexer, p.right, parser_choice);
+    ast_node_t rhs = pratt_parse_binary_infix_op(arena, lexer, p.right, parser_choice);
 
     if (has_err(rhs)) {
       return rhs;
@@ -568,7 +575,7 @@ static ast_node_t parse_expr(arena_t arena[const static 1], lexer_t lexer[const 
   while(true) {
     switch(parser_choice) {
       case 0: {
-        node = pratt_parse_binary_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
+        node = pratt_parse_binary_infix_op(arena, lexer, 0, parser_choice); // lowest precendence of op is 0
       } break;
       case 1: {
         node = parse_unary_op(arena, lexer);
