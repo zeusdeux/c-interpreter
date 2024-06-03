@@ -124,10 +124,10 @@ void print_ast_(const ast_node_t node, size_t depth)
       fprintf(stderr, "Op: %s\n", binary_kind_name(node.binary_op.kind));
       indent(depth);
       fprintf(stderr, "Left:\n");
-      print_ast_(*node.binary_op.left, depth + 1);
+      print_ast_(*node.binary_op.lhs, depth + 1);
       indent(depth);
       fprintf(stderr, "Right:\n");
-      print_ast_(*node.binary_op.right, depth + 1);
+      print_ast_(*node.binary_op.rhs, depth + 1);
     } break;
 
     case AST_NODE_KIND_LIST: {
@@ -431,8 +431,6 @@ static ast_node_t parse_parenthesized_expr(arena_t arena[const static 1], lexer_
     }
   }
 
-  /* while (one_or_more(lexer, TOKEN_KIND_WS) || one_or_more(lexer, TOKEN_KIND_NEWLINE)) {} */
-
   if (!exactly_one(lexer, TOKEN_KIND_CPAREN, NULL)){
     return (ast_node_t){
       .kind = AST_NODE_KIND_ERROR,
@@ -549,8 +547,8 @@ ast_node_t pratt_parse_binary_infix_op(arena_t arena[const static 1], lexer_t le
       .kind = AST_NODE_KIND_BINARY_OP,
       .binary_op = {
         .kind = binop_kind,
-        .left = p_lhs,
-        .right = p_rhs
+        .lhs = p_lhs,
+        .rhs = p_rhs
       }
     };
 

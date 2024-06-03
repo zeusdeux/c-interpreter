@@ -73,8 +73,8 @@ typedef struct ast_node_t {
 
     struct {
       binary_op_kind_t kind;
-      struct ast_node_t *left;
-      struct ast_node_t *right;
+      struct ast_node_t *lhs;
+      struct ast_node_t *rhs;
     } binary_op;
 
     struct {

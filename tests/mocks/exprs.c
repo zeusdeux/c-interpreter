@@ -47,6 +47,7 @@ test
 s = 100
 a = b = c = 400
 a = b = c = 100 + 2 * 4
+***abc = 123
 //(()"asd
 
 // // 20)0 should be an error
